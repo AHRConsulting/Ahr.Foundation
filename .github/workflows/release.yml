@@ -1,0 +1,137 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing v-prefixed SemVer tag
+        required: true
+      mode:
+        description: Release operation
+        required: true
+        type: choice
+        options:
+          - dry-run
+          - publish
+          - github-release-only
+        default: dry-run
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      checks: write
+    outputs:
+      version: ${{ steps.version.outputs.value }}
+      tag: ${{ steps.version.outputs.tag }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          tag="${{ inputs.tag || github.ref_name }}"
+          [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || exit 1
+          git show-ref --verify --quiet "refs/tags/$tag"
+          [[ "$(git rev-list -n 1 "$tag")" == "$(git rev-parse HEAD)" ]] || exit 1
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "value=${tag#v}" >> "$GITHUB_OUTPUT"
+          if [[ "$tag" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+      - run: dotnet restore Ahr.Foundation.slnx --locked-mode
+      - run: dotnet format Ahr.Foundation.slnx --verify-no-changes --no-restore
+      - run: dotnet build Ahr.Foundation.slnx -c Release --no-restore -p:AhrFoundationVersion=${{ steps.version.outputs.value }}
+      - run: dotnet test --solution Ahr.Foundation.slnx -c Release --no-build -p:AhrFoundationVersion=${{ steps.version.outputs.value }} --report-trx --results-directory artifacts/test-results
+      - name: Publish test report
+        if: always()
+        uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3.0.0
+        with:
+          name: .NET Test Results (release)
+          path: artifacts/test-results/*.trx
+          reporter: dotnet-trx
+          fail-on-error: true
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ahr-foundation-test-results-release
+          path: artifacts/test-results/*.trx
+          if-no-files-found: error
+      - run: dotnet pack src/Ahr.Foundation/Ahr.Foundation.csproj -c Release --no-build -o artifacts/packages -p:AhrFoundationVersion=${{ steps.version.outputs.value }}
+      - name: Verify packaged sample consumer
+        run: scripts/verify-package.sh ${{ steps.version.outputs.value }}
+      - name: Record package hashes
+        working-directory: artifacts/packages
+        run: sha256sum Ahr.Foundation.${{ steps.version.outputs.value }}.nupkg Ahr.Foundation.${{ steps.version.outputs.value }}.snupkg > SHA256SUMS
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-packages
+          path: artifacts/packages/*
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    if: github.event_name == 'push' || inputs.mode != 'dry-run'
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-packages
+          path: artifacts/packages
+      - name: Ensure package version is not already published
+        if: github.event_name == 'push' || inputs.mode == 'publish'
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            "https://api.nuget.org/v3-flatcontainer/ahr.foundation/$VERSION/ahr.foundation.$VERSION.nupkg")"
+          if [ "$status" = "200" ]; then
+            echo "Ahr.Foundation $VERSION already exists on NuGet.org." >&2
+            echo "Use github-release-only only after independently verifying the published package." >&2
+            exit 1
+          fi
+          [ "$status" = "404" ]
+      - name: Request temporary NuGet.org API key
+        if: github.event_name == 'push' || inputs.mode == 'publish'
+        uses: NuGet/login@v1
+        id: nuget-login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+      - name: Push packages to NuGet.org
+        if: github.event_name == 'push' || inputs.mode == 'publish'
+        env:
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+        run: dotnet nuget push artifacts/packages/Ahr.Foundation.${{ needs.build.outputs.version }}.nupkg --source https://api.nuget.org/v3/index.json --api-key "$NUGET_API_KEY"
+      - name: Create or update GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ needs.build.outputs.tag }}"
+          if gh release view "$tag" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release upload "$tag" artifacts/packages/* --repo "${{ github.repository }}" --clobber
+          elif [ "${{ needs.build.outputs.prerelease }}" = "true" ]; then
+            gh release create "$tag" artifacts/packages/* --repo "${{ github.repository }}" --generate-notes --prerelease
+          else
+            gh release create "$tag" artifacts/packages/* --repo "${{ github.repository }}" --generate-notes --latest
+          fi

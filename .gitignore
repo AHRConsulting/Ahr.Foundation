@@ -1,0 +1,26 @@
+## .NET build output
+bin/
+obj/
+artifacts/
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+## DocFX output
+_site/
+/api/
+
+## IDE and user state
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+## Test tooling
+.testagent/
+
+## OS
+.DS_Store
+Thumbs.db

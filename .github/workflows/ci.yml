@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
+jobs:
+  validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - run: dotnet restore Ahr.Foundation.slnx --locked-mode
+      - run: dotnet format Ahr.Foundation.slnx --verify-no-changes --no-restore
+        if: matrix.os == 'ubuntu-latest'
+      - run: dotnet build Ahr.Foundation.slnx -c Release --no-restore
+      - name: Run Tests and Generate TRX Reports
+        run: dotnet test --solution Ahr.Foundation.slnx -c Release --no-build --report-trx --results-directory artifacts/test-results
+      - name: Publish test report
+        if: always()
+        uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3.0.0
+        with:
+          name: .NET Test Results (${{ matrix.os }})
+          path: artifacts/test-results/*.trx
+          reporter: dotnet-trx
+          fail-on-error: true
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ahr-foundation-test-results-${{ matrix.os }}
+          path: artifacts/test-results/*.trx
+          if-no-files-found: error
+      - run: dotnet pack src/Ahr.Foundation/Ahr.Foundation.csproj -c Release --no-build -o artifacts/packages
+        if: matrix.os == 'ubuntu-latest'
+      - name: Verify packaged sample consumer
+        if: matrix.os == 'ubuntu-latest'
+        run: scripts/verify-package.sh
+      - uses: actions/upload-artifact@v7
+        if: matrix.os == 'ubuntu-latest'
+        with:
+          name: packages
+          path: artifacts/packages/*
+          if-no-files-found: error
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - run: dotnet tool update -g docfx
+      - run: dotnet restore Ahr.Foundation.slnx --locked-mode
+      - name: Generate API metadata
+        run: docfx metadata
+      - name: Order API navigation
+        run: python3 scripts/order-api-toc.py
+      - name: Verify documentation builds
+        run: docfx build --warningsAsErrors

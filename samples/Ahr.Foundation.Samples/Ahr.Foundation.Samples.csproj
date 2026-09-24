@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(UseLocalAhrFoundationPackage)' != 'true'">
+    <ProjectReference Include="..\..\src\Ahr.Foundation\Ahr.Foundation.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UseLocalAhrFoundationPackage)' == 'true'">
+    <PackageReference Include="Ahr.Foundation" VersionOverride="$(AhrFoundationPackageVersion)" />
+  </ItemGroup>
+</Project>

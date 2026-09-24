@@ -1,0 +1,65 @@
+<svg
+    viewBox="0 0 512 512"
+    xmlns="http://www.w3.org/2000/svg"
+    role="img"
+    aria-label="Ahr.Foundation"
+>
+    <!-- Background -->
+    <rect
+        x="32"
+        y="32"
+        width="448"
+        height="448"
+        rx="96"
+        fill="#000000"
+    />
+
+    <!-- a -->
+    <path
+        d="M134.8 204.3 H192 V307.7 H137.9 L137.3 254.6 H190.8"
+        fill="none"
+        stroke="#ffffff"
+        stroke-width="7.75"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+    />
+
+    <!-- h stem -->
+    <path
+        d="M225.6 152.6 V359.4"
+        fill="none"
+        stroke="#ffffff"
+        stroke-width="7.75"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+    />
+
+    <!-- h arm -->
+    <path
+        d="M285.6 311.2 V204 H226"
+        fill="none"
+        stroke="#ffffff"
+        stroke-width="7.75"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+    />
+
+    <!-- r -->
+    <path
+        d="M321.9 311 V204.1 H377.8"
+        fill="none"
+        stroke="#ffffff"
+        stroke-width="7.75"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+    />
+
+    <!-- Foundation Bar -->
+    <path
+        d="M170 392 H342"
+        fill="none"
+        stroke="#297BFF"
+        stroke-width="11"
+        stroke-linecap="round"
+    />
+</svg>

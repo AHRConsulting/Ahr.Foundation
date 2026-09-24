@@ -1,0 +1,235 @@
+#nullable enable
+Ahr.Foundation.Error
+Ahr.Foundation.Error.Equals(Ahr.Foundation.Error other) -> bool
+Ahr.Foundation.Error.Error() -> void
+Ahr.Foundation.Error.Error(string! message, System.Exception? exception = null) -> void
+Ahr.Foundation.Error.Exception.get -> System.Exception?
+Ahr.Foundation.Error.Exception.init -> void
+Ahr.Foundation.Error.Message.get -> string!
+Ahr.Foundation.Error.Message.init -> void
+Ahr.Foundation.Option<T>
+Ahr.Foundation.Option<T>.Bind<TOut>(System.Func<T, Ahr.Foundation.Option<TOut>>! bind) -> Ahr.Foundation.Option<TOut>
+Ahr.Foundation.Option<T>.BindAsync<TOut>(System.Func<T, System.Threading.Tasks.Task<Ahr.Foundation.Option<TOut>>!>! bind) -> System.Threading.Tasks.Task<Ahr.Foundation.Option<TOut>>!
+Ahr.Foundation.Option<T>.Equals(Ahr.Foundation.Option<T> other) -> bool
+Ahr.Foundation.Option<T>.GetValueOrDefault() -> T?
+Ahr.Foundation.Option<T>.GetValueOrDefault(T fallback) -> T
+Ahr.Foundation.Option<T>.IsNone.get -> bool
+Ahr.Foundation.Option<T>.IsSome.get -> bool
+Ahr.Foundation.Option<T>.Map<TOut>(System.Func<T, TOut>! map) -> Ahr.Foundation.Option<TOut>
+Ahr.Foundation.Option<T>.MapAsync<TOut>(System.Func<T, System.Threading.Tasks.Task<TOut>!>! map) -> System.Threading.Tasks.Task<Ahr.Foundation.Option<TOut>>!
+Ahr.Foundation.Option<T>.Match(System.Action<T>! onSome, System.Action! onNone) -> Ahr.Foundation.Option<T>
+Ahr.Foundation.Option<T>.Match<TResult>(System.Func<T, TResult>! onSome, System.Func<TResult>! onNone) -> TResult
+Ahr.Foundation.Option<T>.MatchAsync(System.Func<T, System.Threading.Tasks.Task!>! onSome, System.Func<System.Threading.Tasks.Task!>! onNone) -> System.Threading.Tasks.Task<Ahr.Foundation.Option<T>>!
+Ahr.Foundation.Option<T>.MatchAsync<TResult>(System.Func<T, System.Threading.Tasks.Task<TResult>!>! onSome, System.Func<System.Threading.Tasks.Task<TResult>!>! onNone) -> System.Threading.Tasks.Task<TResult>!
+Ahr.Foundation.Option<T>.Option() -> void
+Ahr.Foundation.Option<T>.Tap(System.Action<T>! action) -> Ahr.Foundation.Option<T>
+Ahr.Foundation.Option<T>.TapAsync(System.Func<T, System.Threading.Tasks.Task!>! action) -> System.Threading.Tasks.Task<Ahr.Foundation.Option<T>>!
+Ahr.Foundation.Option<T>.ToResult(Ahr.Foundation.Error error) -> Ahr.Foundation.Result<T>
+Ahr.Foundation.Option<T>.ToResult<TError>(TError error) -> Ahr.Foundation.Result<T, TError>
+Ahr.Foundation.Option<T>.Value.get -> T
+Ahr.Foundation.Option<T>.Where(System.Func<T, bool>! predicate) -> Ahr.Foundation.Option<T>
+Ahr.Foundation.Option<T>.WhereAsync(System.Func<T, System.Threading.Tasks.Task<bool>!>! predicate) -> System.Threading.Tasks.Task<Ahr.Foundation.Option<T>>!
+Ahr.Foundation.OptionExtensions
+Ahr.Foundation.LinqExtensions
+Ahr.Foundation.Result
+Ahr.Foundation.Result.Bind(System.Func<Ahr.Foundation.Result>! bind) -> Ahr.Foundation.Result
+Ahr.Foundation.Result.Bind<TOut>(System.Func<Ahr.Foundation.Result<TOut>>! bind) -> Ahr.Foundation.Result<TOut>
+Ahr.Foundation.Result.BindAsync(System.Func<System.Threading.Tasks.Task<Ahr.Foundation.Result>!>! bind) -> System.Threading.Tasks.Task<Ahr.Foundation.Result>!
+Ahr.Foundation.Result.BindAsync<TOut>(System.Func<System.Threading.Tasks.Task<Ahr.Foundation.Result<TOut>>!>! bind) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<TOut>>!
+Ahr.Foundation.Result.Equals(Ahr.Foundation.Result other) -> bool
+Ahr.Foundation.Result.Error.get -> Ahr.Foundation.Error
+Ahr.Foundation.Result.IsFailure.get -> bool
+Ahr.Foundation.Result.IsSuccess.get -> bool
+Ahr.Foundation.Result.Match(System.Action! onSuccess, System.Action<Ahr.Foundation.Error>! onFailure) -> Ahr.Foundation.Result
+Ahr.Foundation.Result.Match<TResult>(System.Func<TResult>! onSuccess, System.Func<Ahr.Foundation.Error, TResult>! onFailure) -> TResult
+Ahr.Foundation.Result.MatchAsync(System.Func<System.Threading.Tasks.Task!>! onSuccess, System.Func<Ahr.Foundation.Error, System.Threading.Tasks.Task!>! onFailure) -> System.Threading.Tasks.Task<Ahr.Foundation.Result>!
+Ahr.Foundation.Result.MatchAsync<TResult>(System.Func<System.Threading.Tasks.Task<TResult>!>! onSuccess, System.Func<Ahr.Foundation.Error, System.Threading.Tasks.Task<TResult>!>! onFailure) -> System.Threading.Tasks.Task<TResult>!
+Ahr.Foundation.Result.Result() -> void
+Ahr.Foundation.Result.Tap(System.Action! action) -> Ahr.Foundation.Result
+Ahr.Foundation.Result.TapAsync(System.Func<System.Threading.Tasks.Task!>! action) -> System.Threading.Tasks.Task<Ahr.Foundation.Result>!
+Ahr.Foundation.Result.TapError(System.Action<Ahr.Foundation.Error>! action) -> Ahr.Foundation.Result
+Ahr.Foundation.Result.TapErrorAsync(System.Func<Ahr.Foundation.Error, System.Threading.Tasks.Task!>! action) -> System.Threading.Tasks.Task<Ahr.Foundation.Result>!
+Ahr.Foundation.Result<T, TError>
+Ahr.Foundation.Result<T, TError>.Bind<TOut>(System.Func<T, Ahr.Foundation.Result<TOut, TError>>! bind) -> Ahr.Foundation.Result<TOut, TError>
+Ahr.Foundation.Result<T, TError>.BindAsync<TOut>(System.Func<T, System.Threading.Tasks.Task<Ahr.Foundation.Result<TOut, TError>>!>! bind) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<TOut, TError>>!
+Ahr.Foundation.Result<T, TError>.Ensure(System.Func<T, bool>! predicate, TError error) -> Ahr.Foundation.Result<T, TError>
+Ahr.Foundation.Result<T, TError>.EnsureAsync(System.Func<T, System.Threading.Tasks.Task<bool>!>! predicate, TError error) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>!
+Ahr.Foundation.Result<T, TError>.Equals(Ahr.Foundation.Result<T, TError> other) -> bool
+Ahr.Foundation.Result<T, TError>.Error.get -> TError
+Ahr.Foundation.Result<T, TError>.IsFailure.get -> bool
+Ahr.Foundation.Result<T, TError>.IsSuccess.get -> bool
+Ahr.Foundation.Result<T, TError>.Map<TOut>(System.Func<T, TOut>! map) -> Ahr.Foundation.Result<TOut, TError>
+Ahr.Foundation.Result<T, TError>.MapAsync<TOut>(System.Func<T, System.Threading.Tasks.Task<TOut>!>! map) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<TOut, TError>>!
+Ahr.Foundation.Result<T, TError>.MapError<TOutError>(System.Func<TError, TOutError>! map) -> Ahr.Foundation.Result<T, TOutError>
+Ahr.Foundation.Result<T, TError>.MapErrorAsync<TOutError>(System.Func<TError, System.Threading.Tasks.Task<TOutError>!>! map) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TOutError>>!
+Ahr.Foundation.Result<T, TError>.Match(System.Action<T>! onSuccess, System.Action<TError>! onFailure) -> Ahr.Foundation.Result<T, TError>
+Ahr.Foundation.Result<T, TError>.Match<TResult>(System.Func<T, TResult>! onSuccess, System.Func<TError, TResult>! onFailure) -> TResult
+Ahr.Foundation.Result<T, TError>.MatchAsync(System.Func<T, System.Threading.Tasks.Task!>! onSuccess, System.Func<TError, System.Threading.Tasks.Task!>! onFailure) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>!
+Ahr.Foundation.Result<T, TError>.MatchAsync<TResult>(System.Func<T, System.Threading.Tasks.Task<TResult>!>! onSuccess, System.Func<TError, System.Threading.Tasks.Task<TResult>!>! onFailure) -> System.Threading.Tasks.Task<TResult>!
+Ahr.Foundation.Result<T, TError>.Result() -> void
+Ahr.Foundation.Result<T, TError>.Tap(System.Action<T>! action) -> Ahr.Foundation.Result<T, TError>
+Ahr.Foundation.Result<T, TError>.TapAsync(System.Func<T, System.Threading.Tasks.Task!>! action) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>!
+Ahr.Foundation.Result<T, TError>.TapError(System.Action<TError>! action) -> Ahr.Foundation.Result<T, TError>
+Ahr.Foundation.Result<T, TError>.TapErrorAsync(System.Func<TError, System.Threading.Tasks.Task!>! action) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>!
+Ahr.Foundation.Result<T, TError>.ToOption() -> Ahr.Foundation.Option<T>
+Ahr.Foundation.Result<T, TError>.Value.get -> T
+Ahr.Foundation.Result<T>
+Ahr.Foundation.Result<T>.Bind(System.Func<T, Ahr.Foundation.Result>! bind) -> Ahr.Foundation.Result
+Ahr.Foundation.Result<T>.Bind<TOut>(System.Func<T, Ahr.Foundation.Result<TOut>>! bind) -> Ahr.Foundation.Result<TOut>
+Ahr.Foundation.Result<T>.BindAsync(System.Func<T, System.Threading.Tasks.Task<Ahr.Foundation.Result>!>! bind) -> System.Threading.Tasks.Task<Ahr.Foundation.Result>!
+Ahr.Foundation.Result<T>.BindAsync<TOut>(System.Func<T, System.Threading.Tasks.Task<Ahr.Foundation.Result<TOut>>!>! bind) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<TOut>>!
+Ahr.Foundation.Result<T>.Ensure(System.Func<T, bool>! predicate, Ahr.Foundation.Error error) -> Ahr.Foundation.Result<T>
+Ahr.Foundation.Result<T>.EnsureAsync(System.Func<T, System.Threading.Tasks.Task<bool>!>! predicate, Ahr.Foundation.Error error) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!
+Ahr.Foundation.Result<T>.Equals(Ahr.Foundation.Result<T> other) -> bool
+Ahr.Foundation.Result<T>.Error.get -> Ahr.Foundation.Error
+Ahr.Foundation.Result<T>.IsFailure.get -> bool
+Ahr.Foundation.Result<T>.IsSuccess.get -> bool
+Ahr.Foundation.Result<T>.Map<TOut>(System.Func<T, TOut>! map) -> Ahr.Foundation.Result<TOut>
+Ahr.Foundation.Result<T>.MapAsync<TOut>(System.Func<T, System.Threading.Tasks.Task<TOut>!>! map) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<TOut>>!
+Ahr.Foundation.Result<T>.MapError(System.Func<Ahr.Foundation.Error, Ahr.Foundation.Error>! map) -> Ahr.Foundation.Result<T>
+Ahr.Foundation.Result<T>.MapErrorAsync(System.Func<Ahr.Foundation.Error, System.Threading.Tasks.Task<Ahr.Foundation.Error>!>! map) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!
+Ahr.Foundation.Result<T>.Match(System.Action<T>! onSuccess, System.Action<Ahr.Foundation.Error>! onFailure) -> Ahr.Foundation.Result<T>
+Ahr.Foundation.Result<T>.Match<TResult>(System.Func<T, TResult>! onSuccess, System.Func<Ahr.Foundation.Error, TResult>! onFailure) -> TResult
+Ahr.Foundation.Result<T>.MatchAsync(System.Func<T, System.Threading.Tasks.Task!>! onSuccess, System.Func<Ahr.Foundation.Error, System.Threading.Tasks.Task!>! onFailure) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!
+Ahr.Foundation.Result<T>.MatchAsync<TResult>(System.Func<T, System.Threading.Tasks.Task<TResult>!>! onSuccess, System.Func<Ahr.Foundation.Error, System.Threading.Tasks.Task<TResult>!>! onFailure) -> System.Threading.Tasks.Task<TResult>!
+Ahr.Foundation.Result<T>.Result() -> void
+Ahr.Foundation.Result<T>.Tap(System.Action<T>! action) -> Ahr.Foundation.Result<T>
+Ahr.Foundation.Result<T>.TapAsync(System.Func<T, System.Threading.Tasks.Task!>! action) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!
+Ahr.Foundation.Result<T>.TapError(System.Action<Ahr.Foundation.Error>! action) -> Ahr.Foundation.Result<T>
+Ahr.Foundation.Result<T>.TapErrorAsync(System.Func<Ahr.Foundation.Error, System.Threading.Tasks.Task!>! action) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!
+Ahr.Foundation.Result<T>.ToOption() -> Ahr.Foundation.Option<T>
+Ahr.Foundation.Result<T>.Value.get -> T
+Ahr.Foundation.ResultExtensions
+Ahr.Foundation.TaskCompositionExtensions
+override Ahr.Foundation.Error.GetHashCode() -> int
+override Ahr.Foundation.Error.ToString() -> string!
+override Ahr.Foundation.Option<T>.GetHashCode() -> int
+override Ahr.Foundation.Result.GetHashCode() -> int
+override Ahr.Foundation.Result<T, TError>.GetHashCode() -> int
+override Ahr.Foundation.Result<T>.GetHashCode() -> int
+static Ahr.Foundation.Error.FromException(System.Exception! exception) -> Ahr.Foundation.Error
+static Ahr.Foundation.Error.FromMessage(string! message) -> Ahr.Foundation.Error
+static Ahr.Foundation.Error.operator !=(Ahr.Foundation.Error left, Ahr.Foundation.Error right) -> bool
+static Ahr.Foundation.Error.operator ==(Ahr.Foundation.Error left, Ahr.Foundation.Error right) -> bool
+static Ahr.Foundation.Option<T>.None.get -> Ahr.Foundation.Option<T>
+static Ahr.Foundation.Option<T>.Some(T value) -> Ahr.Foundation.Option<T>
+static Ahr.Foundation.Option<T>.operator !=(Ahr.Foundation.Option<T> left, Ahr.Foundation.Option<T> right) -> bool
+static Ahr.Foundation.Option<T>.operator ==(Ahr.Foundation.Option<T> left, Ahr.Foundation.Option<T> right) -> bool
+static Ahr.Foundation.OptionExtensions.FirstOrNone<T>(this System.Collections.Generic.IEnumerable<T>! source) -> Ahr.Foundation.Option<T>
+static Ahr.Foundation.OptionExtensions.FirstOrNone<T>(this System.Collections.Generic.IEnumerable<T>! source, System.Func<T, bool>! predicate) -> Ahr.Foundation.Option<T>
+static Ahr.Foundation.OptionExtensions.ToOption<T>(this T? value) -> Ahr.Foundation.Option<T>
+static Ahr.Foundation.Result.Failure(Ahr.Foundation.Error error) -> Ahr.Foundation.Result
+static Ahr.Foundation.Result.Success() -> Ahr.Foundation.Result
+static Ahr.Foundation.Result.operator !=(Ahr.Foundation.Result left, Ahr.Foundation.Result right) -> bool
+static Ahr.Foundation.Result.operator ==(Ahr.Foundation.Result left, Ahr.Foundation.Result right) -> bool
+static Ahr.Foundation.Result<T, TError>.Failure(TError error) -> Ahr.Foundation.Result<T, TError>
+static Ahr.Foundation.Result<T, TError>.Success(T value) -> Ahr.Foundation.Result<T, TError>
+static Ahr.Foundation.Result<T, TError>.operator !=(Ahr.Foundation.Result<T, TError> left, Ahr.Foundation.Result<T, TError> right) -> bool
+static Ahr.Foundation.Result<T, TError>.operator ==(Ahr.Foundation.Result<T, TError> left, Ahr.Foundation.Result<T, TError> right) -> bool
+static Ahr.Foundation.Result<T>.Failure(Ahr.Foundation.Error error) -> Ahr.Foundation.Result<T>
+static Ahr.Foundation.Result<T>.Success(T value) -> Ahr.Foundation.Result<T>
+static Ahr.Foundation.Result<T>.explicit operator Ahr.Foundation.Result<T, Ahr.Foundation.Error>(Ahr.Foundation.Result<T> result) -> Ahr.Foundation.Result<T, Ahr.Foundation.Error>
+static Ahr.Foundation.Result<T>.explicit operator Ahr.Foundation.Result<T>(Ahr.Foundation.Result<T, Ahr.Foundation.Error> result) -> Ahr.Foundation.Result<T>
+static Ahr.Foundation.Result<T>.operator !=(Ahr.Foundation.Result<T> left, Ahr.Foundation.Result<T> right) -> bool
+static Ahr.Foundation.Result<T>.operator ==(Ahr.Foundation.Result<T> left, Ahr.Foundation.Result<T> right) -> bool
+static Ahr.Foundation.ResultExtensions.ToFailure(this Ahr.Foundation.Error error) -> Ahr.Foundation.Result
+static Ahr.Foundation.ResultExtensions.ToFailure(this System.Exception! exception) -> Ahr.Foundation.Result
+static Ahr.Foundation.ResultExtensions.ToFailure(this System.Exception! exception, string! message) -> Ahr.Foundation.Result
+static Ahr.Foundation.ResultExtensions.ToFailure(this string! message) -> Ahr.Foundation.Result
+static Ahr.Foundation.ResultExtensions.ToFailure<T>(this Ahr.Foundation.Error error) -> Ahr.Foundation.Result<T>
+static Ahr.Foundation.ResultExtensions.ToFailure<T>(this System.Exception! exception) -> Ahr.Foundation.Result<T>
+static Ahr.Foundation.ResultExtensions.ToFailure<T>(this System.Exception! exception, string! message) -> Ahr.Foundation.Result<T>
+static Ahr.Foundation.ResultExtensions.ToFailure<T>(this string! message) -> Ahr.Foundation.Result<T>
+static Ahr.Foundation.ResultExtensions.ToSuccess<T, TError>(this T value) -> Ahr.Foundation.Result<T, TError>
+static Ahr.Foundation.ResultExtensions.ToSuccess<T>(this T value) -> Ahr.Foundation.Result<T>
+static Ahr.Foundation.LinqExtensions.Select<T, TError, TOut>(this Ahr.Foundation.Result<T, TError> result, System.Func<T, TOut>! selector) -> Ahr.Foundation.Result<TOut, TError>
+static Ahr.Foundation.LinqExtensions.Select<T, TOut>(this Ahr.Foundation.Option<T> option, System.Func<T, TOut>! selector) -> Ahr.Foundation.Option<TOut>
+static Ahr.Foundation.LinqExtensions.Select<T, TOut>(this Ahr.Foundation.Result<T> result, System.Func<T, TOut>! selector) -> Ahr.Foundation.Result<TOut>
+static Ahr.Foundation.LinqExtensions.SelectMany<T, TError, TIntermediate, TOut>(this Ahr.Foundation.Result<T, TError> result, System.Func<T, Ahr.Foundation.Result<TIntermediate, TError>>! selector, System.Func<T, TIntermediate, TOut>! resultSelector) -> Ahr.Foundation.Result<TOut, TError>
+static Ahr.Foundation.LinqExtensions.SelectMany<T, TIntermediate, TOut>(this Ahr.Foundation.Option<T> option, System.Func<T, Ahr.Foundation.Option<TIntermediate>>! selector, System.Func<T, TIntermediate, TOut>! resultSelector) -> Ahr.Foundation.Option<TOut>
+static Ahr.Foundation.LinqExtensions.SelectMany<T, TIntermediate, TOut>(this Ahr.Foundation.Result<T> result, System.Func<T, Ahr.Foundation.Result<TIntermediate>>! selector, System.Func<T, TIntermediate, TOut>! resultSelector) -> Ahr.Foundation.Result<TOut>
+Ahr.Foundation.TaskCompositionExtensions.extension(System.Threading.Tasks.Task<Ahr.Foundation.Result>!)
+Ahr.Foundation.TaskCompositionExtensions.extension(System.Threading.Tasks.Task<Ahr.Foundation.Result>!).BindAsync(System.Func<System.Threading.Tasks.Task<Ahr.Foundation.Result>!>! bind) -> System.Threading.Tasks.Task<Ahr.Foundation.Result>!
+Ahr.Foundation.TaskCompositionExtensions.extension(System.Threading.Tasks.Task<Ahr.Foundation.Result>!).BindAsync<TOut>(System.Func<System.Threading.Tasks.Task<Ahr.Foundation.Result<TOut>>!>! bind) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<TOut>>!
+Ahr.Foundation.TaskCompositionExtensions.extension(System.Threading.Tasks.Task<Ahr.Foundation.Result>!).TapAsync(System.Func<System.Threading.Tasks.Task!>! action) -> System.Threading.Tasks.Task<Ahr.Foundation.Result>!
+Ahr.Foundation.TaskCompositionExtensions.extension(System.Threading.Tasks.Task<Ahr.Foundation.Result>!).TapErrorAsync(System.Func<Ahr.Foundation.Error, System.Threading.Tasks.Task!>! action) -> System.Threading.Tasks.Task<Ahr.Foundation.Result>!
+Ahr.Foundation.TaskCompositionExtensions.extension<T, TError>(System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>!)
+Ahr.Foundation.TaskCompositionExtensions.extension<T, TError>(System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>!).BindAsync<TOut>(System.Func<T, System.Threading.Tasks.Task<Ahr.Foundation.Result<TOut, TError>>!>! bind) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<TOut, TError>>!
+Ahr.Foundation.TaskCompositionExtensions.extension<T, TError>(System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>!).EnsureAsync(System.Func<T, System.Threading.Tasks.Task<bool>!>! predicate, TError error) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>!
+Ahr.Foundation.TaskCompositionExtensions.extension<T, TError>(System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>!).MapAsync<TOut>(System.Func<T, System.Threading.Tasks.Task<TOut>!>! map) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<TOut, TError>>!
+Ahr.Foundation.TaskCompositionExtensions.extension<T, TError>(System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>!).MapErrorAsync<TOutError>(System.Func<TError, System.Threading.Tasks.Task<TOutError>!>! map) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TOutError>>!
+Ahr.Foundation.TaskCompositionExtensions.extension<T, TError>(System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>!).TapAsync(System.Func<T, System.Threading.Tasks.Task!>! action) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>!
+Ahr.Foundation.TaskCompositionExtensions.extension<T, TError>(System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>!).TapErrorAsync(System.Func<TError, System.Threading.Tasks.Task!>! action) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>!
+Ahr.Foundation.TaskCompositionExtensions.extension<T>(System.Threading.Tasks.Task<Ahr.Foundation.Option<T>>!)
+Ahr.Foundation.TaskCompositionExtensions.extension<T>(System.Threading.Tasks.Task<Ahr.Foundation.Option<T>>!).BindAsync<TOut>(System.Func<T, System.Threading.Tasks.Task<Ahr.Foundation.Option<TOut>>!>! bind) -> System.Threading.Tasks.Task<Ahr.Foundation.Option<TOut>>!
+Ahr.Foundation.TaskCompositionExtensions.extension<T>(System.Threading.Tasks.Task<Ahr.Foundation.Option<T>>!).MapAsync<TOut>(System.Func<T, System.Threading.Tasks.Task<TOut>!>! map) -> System.Threading.Tasks.Task<Ahr.Foundation.Option<TOut>>!
+Ahr.Foundation.TaskCompositionExtensions.extension<T>(System.Threading.Tasks.Task<Ahr.Foundation.Option<T>>!).TapAsync(System.Func<T, System.Threading.Tasks.Task!>! action) -> System.Threading.Tasks.Task<Ahr.Foundation.Option<T>>!
+Ahr.Foundation.TaskCompositionExtensions.extension<T>(System.Threading.Tasks.Task<Ahr.Foundation.Option<T>>!).WhereAsync(System.Func<T, System.Threading.Tasks.Task<bool>!>! predicate) -> System.Threading.Tasks.Task<Ahr.Foundation.Option<T>>!
+Ahr.Foundation.TaskCompositionExtensions.extension<T>(System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!)
+Ahr.Foundation.TaskCompositionExtensions.extension<T>(System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!).BindAsync(System.Func<T, System.Threading.Tasks.Task<Ahr.Foundation.Result>!>! bind) -> System.Threading.Tasks.Task<Ahr.Foundation.Result>!
+Ahr.Foundation.TaskCompositionExtensions.extension<T>(System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!).BindAsync<TOut>(System.Func<T, System.Threading.Tasks.Task<Ahr.Foundation.Result<TOut>>!>! bind) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<TOut>>!
+Ahr.Foundation.TaskCompositionExtensions.extension<T>(System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!).EnsureAsync(System.Func<T, System.Threading.Tasks.Task<bool>!>! predicate, Ahr.Foundation.Error error) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!
+Ahr.Foundation.TaskCompositionExtensions.extension<T>(System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!).MapAsync<TOut>(System.Func<T, System.Threading.Tasks.Task<TOut>!>! map) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<TOut>>!
+Ahr.Foundation.TaskCompositionExtensions.extension<T>(System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!).MapErrorAsync(System.Func<Ahr.Foundation.Error, System.Threading.Tasks.Task<Ahr.Foundation.Error>!>! map) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!
+Ahr.Foundation.TaskCompositionExtensions.extension<T>(System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!).TapAsync(System.Func<T, System.Threading.Tasks.Task!>! action) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!
+Ahr.Foundation.TaskCompositionExtensions.extension<T>(System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!).TapErrorAsync(System.Func<Ahr.Foundation.Error, System.Threading.Tasks.Task!>! action) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!
+static Ahr.Foundation.TaskCompositionExtensions.BindAsync(this System.Threading.Tasks.Task<Ahr.Foundation.Result>! resultTask, System.Func<System.Threading.Tasks.Task<Ahr.Foundation.Result>!>! bind) -> System.Threading.Tasks.Task<Ahr.Foundation.Result>!
+static Ahr.Foundation.TaskCompositionExtensions.BindAsync<T, TError, TOut>(this System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>! resultTask, System.Func<T, System.Threading.Tasks.Task<Ahr.Foundation.Result<TOut, TError>>!>! bind) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<TOut, TError>>!
+static Ahr.Foundation.TaskCompositionExtensions.BindAsync<T, TOut>(this System.Threading.Tasks.Task<Ahr.Foundation.Option<T>>! optionTask, System.Func<T, System.Threading.Tasks.Task<Ahr.Foundation.Option<TOut>>!>! bind) -> System.Threading.Tasks.Task<Ahr.Foundation.Option<TOut>>!
+static Ahr.Foundation.TaskCompositionExtensions.BindAsync<T, TOut>(this System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>! resultTask, System.Func<T, System.Threading.Tasks.Task<Ahr.Foundation.Result<TOut>>!>! bind) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<TOut>>!
+static Ahr.Foundation.TaskCompositionExtensions.BindAsync<T>(this System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>! resultTask, System.Func<T, System.Threading.Tasks.Task<Ahr.Foundation.Result>!>! bind) -> System.Threading.Tasks.Task<Ahr.Foundation.Result>!
+static Ahr.Foundation.TaskCompositionExtensions.BindAsync<TOut>(this System.Threading.Tasks.Task<Ahr.Foundation.Result>! resultTask, System.Func<System.Threading.Tasks.Task<Ahr.Foundation.Result<TOut>>!>! bind) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<TOut>>!
+static Ahr.Foundation.TaskCompositionExtensions.EnsureAsync<T, TError>(this System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>! resultTask, System.Func<T, System.Threading.Tasks.Task<bool>!>! predicate, TError error) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>!
+static Ahr.Foundation.TaskCompositionExtensions.EnsureAsync<T>(this System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>! resultTask, System.Func<T, System.Threading.Tasks.Task<bool>!>! predicate, Ahr.Foundation.Error error) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!
+static Ahr.Foundation.TaskCompositionExtensions.MapAsync<T, TError, TOut>(this System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>! resultTask, System.Func<T, System.Threading.Tasks.Task<TOut>!>! map) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<TOut, TError>>!
+static Ahr.Foundation.TaskCompositionExtensions.MapAsync<T, TOut>(this System.Threading.Tasks.Task<Ahr.Foundation.Option<T>>! optionTask, System.Func<T, System.Threading.Tasks.Task<TOut>!>! map) -> System.Threading.Tasks.Task<Ahr.Foundation.Option<TOut>>!
+static Ahr.Foundation.TaskCompositionExtensions.MapAsync<T, TOut>(this System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>! resultTask, System.Func<T, System.Threading.Tasks.Task<TOut>!>! map) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<TOut>>!
+static Ahr.Foundation.TaskCompositionExtensions.MapErrorAsync<T, TError, TOutError>(this System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>! resultTask, System.Func<TError, System.Threading.Tasks.Task<TOutError>!>! map) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TOutError>>!
+static Ahr.Foundation.TaskCompositionExtensions.MapErrorAsync<T>(this System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>! resultTask, System.Func<Ahr.Foundation.Error, System.Threading.Tasks.Task<Ahr.Foundation.Error>!>! map) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!
+static Ahr.Foundation.TaskCompositionExtensions.TapAsync(this System.Threading.Tasks.Task<Ahr.Foundation.Result>! resultTask, System.Func<System.Threading.Tasks.Task!>! action) -> System.Threading.Tasks.Task<Ahr.Foundation.Result>!
+static Ahr.Foundation.TaskCompositionExtensions.TapAsync<T, TError>(this System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>! resultTask, System.Func<T, System.Threading.Tasks.Task!>! action) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>!
+static Ahr.Foundation.TaskCompositionExtensions.TapAsync<T>(this System.Threading.Tasks.Task<Ahr.Foundation.Option<T>>! optionTask, System.Func<T, System.Threading.Tasks.Task!>! action) -> System.Threading.Tasks.Task<Ahr.Foundation.Option<T>>!
+static Ahr.Foundation.TaskCompositionExtensions.TapAsync<T>(this System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>! resultTask, System.Func<T, System.Threading.Tasks.Task!>! action) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!
+static Ahr.Foundation.TaskCompositionExtensions.TapErrorAsync(this System.Threading.Tasks.Task<Ahr.Foundation.Result>! resultTask, System.Func<Ahr.Foundation.Error, System.Threading.Tasks.Task!>! action) -> System.Threading.Tasks.Task<Ahr.Foundation.Result>!
+static Ahr.Foundation.TaskCompositionExtensions.TapErrorAsync<T, TError>(this System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>! resultTask, System.Func<TError, System.Threading.Tasks.Task!>! action) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>!
+static Ahr.Foundation.TaskCompositionExtensions.TapErrorAsync<T>(this System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>! resultTask, System.Func<Ahr.Foundation.Error, System.Threading.Tasks.Task!>! action) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!
+static Ahr.Foundation.TaskCompositionExtensions.WhereAsync<T>(this System.Threading.Tasks.Task<Ahr.Foundation.Option<T>>! optionTask, System.Func<T, System.Threading.Tasks.Task<bool>!>! predicate) -> System.Threading.Tasks.Task<Ahr.Foundation.Option<T>>!
+static Ahr.Foundation.Result.Try(System.Action! operation) -> Ahr.Foundation.Result
+static Ahr.Foundation.Result.Try<T, TError>(System.Func<T>! operation, System.Func<System.Exception!, TError>! errorFactory) -> Ahr.Foundation.Result<T, TError>
+static Ahr.Foundation.Result.Try<T>(System.Func<T>! operation) -> Ahr.Foundation.Result<T>
+static Ahr.Foundation.Result.TryAsync(System.Func<System.Threading.Tasks.Task!>! operation) -> System.Threading.Tasks.Task<Ahr.Foundation.Result>!
+static Ahr.Foundation.Result.TryAsync<T, TError>(System.Func<System.Threading.Tasks.Task<T>!>! operation, System.Func<System.Exception!, TError>! errorFactory) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>!
+static Ahr.Foundation.Result.TryAsync<T>(System.Func<System.Threading.Tasks.Task<T>!>! operation) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!
+Ahr.Foundation.Result<T>.GetValueOrDefault() -> T?
+Ahr.Foundation.Result<T>.GetValueOrDefault(T fallback) -> T
+Ahr.Foundation.Result<T, TError>.GetValueOrDefault() -> T?
+Ahr.Foundation.Result<T, TError>.GetValueOrDefault(T fallback) -> T
+Ahr.Foundation.Option<T>.OrElse(Ahr.Foundation.Option<T> fallback) -> Ahr.Foundation.Option<T>
+Ahr.Foundation.Option<T>.OrElse(System.Func<Ahr.Foundation.Option<T>>! fallback) -> Ahr.Foundation.Option<T>
+Ahr.Foundation.Option<T>.OrElseAsync(System.Func<System.Threading.Tasks.Task<Ahr.Foundation.Option<T>>!>! fallback) -> System.Threading.Tasks.Task<Ahr.Foundation.Option<T>>!
+Ahr.Foundation.Result.OrElse(Ahr.Foundation.Result fallback) -> Ahr.Foundation.Result
+Ahr.Foundation.Result.OrElse(System.Func<Ahr.Foundation.Result>! fallback) -> Ahr.Foundation.Result
+Ahr.Foundation.Result.OrElseAsync(System.Func<System.Threading.Tasks.Task<Ahr.Foundation.Result>!>! fallback) -> System.Threading.Tasks.Task<Ahr.Foundation.Result>!
+Ahr.Foundation.Result<T, TError>.OrElse(Ahr.Foundation.Result<T, TError> fallback) -> Ahr.Foundation.Result<T, TError>
+Ahr.Foundation.Result<T, TError>.OrElse(System.Func<Ahr.Foundation.Result<T, TError>>! fallback) -> Ahr.Foundation.Result<T, TError>
+Ahr.Foundation.Result<T, TError>.OrElseAsync(System.Func<System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>!>! fallback) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>!
+Ahr.Foundation.Result<T>.OrElse(Ahr.Foundation.Result<T> fallback) -> Ahr.Foundation.Result<T>
+Ahr.Foundation.Result<T>.OrElse(System.Func<Ahr.Foundation.Result<T>>! fallback) -> Ahr.Foundation.Result<T>
+Ahr.Foundation.Result<T>.OrElseAsync(System.Func<System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!>! fallback) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!
+Ahr.Foundation.TaskCompositionExtensions.extension(System.Threading.Tasks.Task<Ahr.Foundation.Result>!).OrElseAsync(System.Func<System.Threading.Tasks.Task<Ahr.Foundation.Result>!>! fallback) -> System.Threading.Tasks.Task<Ahr.Foundation.Result>!
+Ahr.Foundation.TaskCompositionExtensions.extension<T, TError>(System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>!).OrElseAsync(System.Func<System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>!>! fallback) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>!
+Ahr.Foundation.TaskCompositionExtensions.extension<T>(System.Threading.Tasks.Task<Ahr.Foundation.Option<T>>!).OrElseAsync(System.Func<System.Threading.Tasks.Task<Ahr.Foundation.Option<T>>!>! fallback) -> System.Threading.Tasks.Task<Ahr.Foundation.Option<T>>!
+Ahr.Foundation.TaskCompositionExtensions.extension<T>(System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!).OrElseAsync(System.Func<System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!>! fallback) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!
+static Ahr.Foundation.TaskCompositionExtensions.OrElseAsync(this System.Threading.Tasks.Task<Ahr.Foundation.Result>! resultTask, System.Func<System.Threading.Tasks.Task<Ahr.Foundation.Result>!>! fallback) -> System.Threading.Tasks.Task<Ahr.Foundation.Result>!
+static Ahr.Foundation.TaskCompositionExtensions.OrElseAsync<T, TError>(this System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>! resultTask, System.Func<System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>!>! fallback) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T, TError>>!
+static Ahr.Foundation.TaskCompositionExtensions.OrElseAsync<T>(this System.Threading.Tasks.Task<Ahr.Foundation.Option<T>>! optionTask, System.Func<System.Threading.Tasks.Task<Ahr.Foundation.Option<T>>!>! fallback) -> System.Threading.Tasks.Task<Ahr.Foundation.Option<T>>!
+static Ahr.Foundation.TaskCompositionExtensions.OrElseAsync<T>(this System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>! resultTask, System.Func<System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!>! fallback) -> System.Threading.Tasks.Task<Ahr.Foundation.Result<T>>!
+~override Ahr.Foundation.Error.Equals(object obj) -> bool
+~override Ahr.Foundation.Option<T>.Equals(object obj) -> bool
+~override Ahr.Foundation.Option<T>.ToString() -> string
+~override Ahr.Foundation.Result.Equals(object obj) -> bool
+~override Ahr.Foundation.Result.ToString() -> string
+~override Ahr.Foundation.Result<T, TError>.Equals(object obj) -> bool
+~override Ahr.Foundation.Result<T, TError>.ToString() -> string
+~override Ahr.Foundation.Result<T>.Equals(object obj) -> bool
+~override Ahr.Foundation.Result<T>.ToString() -> string

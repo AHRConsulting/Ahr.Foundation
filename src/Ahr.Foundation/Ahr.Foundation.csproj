@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
+    <AssemblyName>Ahr.Foundation</AssemblyName>
+    <RootNamespace>Ahr.Foundation</RootNamespace>
+    <PackageId>Ahr.Foundation</PackageId>
+    <PackageTitle>Ahr.Foundation</PackageTitle>
+    <Description>Platform-neutral Result and Option primitives for explicit error handling, Railway-Oriented Programming, LINQ, and asynchronous task composition in .NET.</Description>
+    <PackageTags>result;option;functional-programming;railway-oriented-programming;rop;dotnet;analyzer</PackageTags>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/AHRConsulting/Ahr.Foundation</PackageProjectUrl>
+    <PackageIcon>package-icon.png</PackageIcon>
+    <PackageReleaseNotes>https://github.com/AHRConsulting/Ahr.Foundation/blob/v$(Version)/CHANGELOG.md</PackageReleaseNotes>
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)../../artifacts/packages</PackageOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
+    <ProjectReference Include="../../analyzers/Ahr.Foundation.Analyzers/Ahr.Foundation.Analyzers.csproj"
+                      ReferenceOutputAssembly="false" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(DocfxBuild)' != 'true'">
+    <AdditionalFiles Include="PublicAPI.Shipped.txt" />
+    <AdditionalFiles Include="PublicAPI.Unshipped.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" Link="README.md" />
+    <None Include="../../CHANGELOG.md" Pack="true" PackagePath="/" Link="CHANGELOG.md" />
+    <None Include="../../assets/package-icon.png" Pack="true" PackagePath="/" Link="package-icon.png" />
+    <None Include="../../analyzers/Ahr.Foundation.Analyzers/bin/$(Configuration)/netstandard2.0/Ahr.Foundation.Analyzers.dll"
+          Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,79 @@
+@font-face {
+  font-family: "Fira Code";
+  src: url("../assets/fonts/FiraCode-VF.woff2") format("woff2-variations");
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+}
+
+:root,
+[data-bs-theme="light"] {
+  --bs-body-bg: #f7f9fc;
+  --bs-body-color: #172033;
+  --bs-secondary-bg: #eef2f7;
+  --bs-tertiary-bg: #e7edf5;
+  --bs-border-color: #d5deea;
+  --bs-link-color-rgb: 24, 89, 172;
+  --bs-link-hover-color-rgb: 12, 65, 139;
+  --ahr-code-bg: #eef2f7;
+  --ahr-header-bg: rgba(247, 249, 252, 0.92);
+}
+
+[data-bs-theme="dark"] {
+  --bs-body-bg: #090d14;
+  --bs-body-color: #e7edf7;
+  --bs-secondary-bg: #101722;
+  --bs-tertiary-bg: #151e2c;
+  --bs-border-color: #283548;
+  --bs-link-color-rgb: 105, 169, 255;
+  --bs-link-hover-color-rgb: 151, 198, 255;
+  --ahr-code-bg: #0d131d;
+  --ahr-header-bg: rgba(9, 13, 20, 0.92);
+}
+
+body {
+  letter-spacing: -0.005em;
+}
+
+header.bg-body {
+  background-color: var(--ahr-header-bg) !important;
+  backdrop-filter: blur(12px);
+}
+
+#logo {
+  width: 40px;
+  height: 40px;
+  margin-right: 0.5rem;
+  object-fit: contain;
+}
+
+code,
+kbd,
+pre,
+samp {
+  font-family: "Fira Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-variant-ligatures: contextual common-ligatures;
+  font-feature-settings: "calt" 1, "liga" 1;
+}
+
+pre {
+  background: var(--ahr-code-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.4rem;
+}
+
+article h1,
+article h2,
+article h3 {
+  letter-spacing: -0.025em;
+}
+
+.navbar-brand {
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.landing-logo img {
+  width: 128px;
+  height: 128px;
+}

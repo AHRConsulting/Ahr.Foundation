@@ -1,0 +1,61 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/docfx/main/schemas/docfx.json",
+  "build": {
+    "content": [
+      {
+        "files": [
+          "api/**.yml",
+          "api/**.md",
+          "docs/**.md",
+          "docs/**/toc.yml",
+          "toc.yml",
+          "index.md"
+        ]
+      }
+    ],
+    "resource": [
+      {
+        "files": [
+          "assets/ahr.foundation.logo.svg",
+          "assets/fonts/**"
+        ]
+      }
+    ],
+    "output": "_site",
+    "globalMetadata": {
+      "_appTitle": "Ahr.Foundation Documentation",
+      "_appName": "Ahr.Foundation",
+      "_appLogoPath": "assets/ahr.foundation.logo.svg",
+      "_appFooter": "<span>Copyright © AHR Consulting.</span>",
+      "_enableSearch": true,
+      "_enableNewTab": true,
+      "_gitContribute": {
+        "repo": "https://github.com/AHRConsulting/Ahr.Foundation",
+        "branch": "main"
+      },
+      "pdf": false
+    },
+    "template": [
+      "default",
+      "modern",
+      "styles"
+    ]
+  },
+  "metadata": [
+    {
+      "src": [
+        {
+          "files": [
+            "src/Ahr.Foundation/Ahr.Foundation.csproj"
+          ]
+        }
+      ],
+      "dest": "api"
+      ,
+      "properties": {
+        "DocfxBuild": "true",
+        "EnableSourceLink": "false"
+      }
+    }
+  ]
+}

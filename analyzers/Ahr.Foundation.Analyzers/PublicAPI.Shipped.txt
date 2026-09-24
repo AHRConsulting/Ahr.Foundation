@@ -1,0 +1,22 @@
+#nullable enable
+Ahr.Foundation.Analyzers.DefaultResultConstructionAnalyzer
+Ahr.Foundation.Analyzers.DefaultResultConstructionAnalyzer.DefaultResultConstructionAnalyzer() -> void
+Ahr.Foundation.Analyzers.DefaultResultConstructionCodeFixProvider
+Ahr.Foundation.Analyzers.DefaultResultConstructionCodeFixProvider.DefaultResultConstructionCodeFixProvider() -> void
+const Ahr.Foundation.Analyzers.DefaultResultConstructionAnalyzer.DiagnosticId = "AHRF001" -> string!
+override Ahr.Foundation.Analyzers.DefaultResultConstructionAnalyzer.Initialize(Microsoft.CodeAnalysis.Diagnostics.AnalysisContext! context) -> void
+override Ahr.Foundation.Analyzers.DefaultResultConstructionAnalyzer.SupportedDiagnostics.get -> System.Collections.Immutable.ImmutableArray<Microsoft.CodeAnalysis.DiagnosticDescriptor!>
+override Ahr.Foundation.Analyzers.DefaultResultConstructionCodeFixProvider.FixableDiagnosticIds.get -> System.Collections.Immutable.ImmutableArray<string!>
+override Ahr.Foundation.Analyzers.DefaultResultConstructionCodeFixProvider.GetFixAllProvider() -> Microsoft.CodeAnalysis.CodeFixes.FixAllProvider!
+override Ahr.Foundation.Analyzers.DefaultResultConstructionCodeFixProvider.RegisterCodeFixesAsync(Microsoft.CodeAnalysis.CodeFixes.CodeFixContext context) -> System.Threading.Tasks.Task!
+Ahr.Foundation.Analyzers.PreferResultTryAnalyzer
+Ahr.Foundation.Analyzers.PreferResultTryAnalyzer.PreferResultTryAnalyzer() -> void
+Ahr.Foundation.Analyzers.PreferResultTryAsyncAnalyzer
+Ahr.Foundation.Analyzers.PreferResultTryAsyncAnalyzer.PreferResultTryAsyncAnalyzer() -> void
+const Ahr.Foundation.Analyzers.PreferResultTryAnalyzer.DiagnosticId = "AHRF002" -> string!
+const Ahr.Foundation.Analyzers.PreferResultTryAsyncAnalyzer.DiagnosticId = "AHRF003" -> string!
+const Ahr.Foundation.Analyzers.PreferResultTryAsyncAnalyzer.AsyncVoidDiagnosticId = "AHRF004" -> string!
+override Ahr.Foundation.Analyzers.PreferResultTryAnalyzer.Initialize(Microsoft.CodeAnalysis.Diagnostics.AnalysisContext! context) -> void
+override Ahr.Foundation.Analyzers.PreferResultTryAnalyzer.SupportedDiagnostics.get -> System.Collections.Immutable.ImmutableArray<Microsoft.CodeAnalysis.DiagnosticDescriptor!>
+override Ahr.Foundation.Analyzers.PreferResultTryAsyncAnalyzer.Initialize(Microsoft.CodeAnalysis.Diagnostics.AnalysisContext! context) -> void
+override Ahr.Foundation.Analyzers.PreferResultTryAsyncAnalyzer.SupportedDiagnostics.get -> System.Collections.Immutable.ImmutableArray<Microsoft.CodeAnalysis.DiagnosticDescriptor!>

@@ -1,0 +1,18 @@
+<Solution>
+  <Folder Name="/analyzers/">
+    <Project Path="analyzers/Ahr.Foundation.Analyzers/Ahr.Foundation.Analyzers.csproj" />
+  </Folder>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/Ahr.Foundation.Benchmarks/Ahr.Foundation.Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/Ahr.Foundation.Samples/Ahr.Foundation.Samples.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Ahr.Foundation/Ahr.Foundation.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Ahr.Foundation.Analyzers.Tests/Ahr.Foundation.Analyzers.Tests.csproj" />
+    <Project Path="tests/Ahr.Foundation.Tests/Ahr.Foundation.Tests.csproj" />
+  </Folder>
+</Solution>
