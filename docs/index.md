@@ -179,3 +179,11 @@ chain `.OrElseAsync(...)` directly off an unawaited task without an intermediate
 Result<Customer> customer = await repository.FindLocalAsync(id)
     .OrElseAsync(() => repository.FindRemoteAsync(id));
 ```
+
+## AI Agent Skill
+
+The [AHRConsulting/agent-skills](https://github.com/AHRConsulting/agent-skills) repository
+publishes an installable `ahr-foundation` skill that teaches Copilot, Claude, and compatible
+agents the conventions on this page: explicit `Success`/`Failure` construction, preferring
+`Bind`/`Map`/`Ensure` chains over imperative branching, and using `Result.Try`/`Result.TryAsync`
+at I/O boundaries.

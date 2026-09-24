@@ -100,6 +100,7 @@ instructions](benchmarks/README.md) for filtered commands, methodology, and inte
 - **Samples Project**: Runnable domain flows in [`samples/Ahr.Foundation.Samples`](samples/Ahr.Foundation.Samples).
 - **Release Workflow**: [`.github/workflows/release.yml`](.github/workflows/release.yml) builds and
   verifies tagged releases before publishing to NuGet.org through a protected environment.
+- **AI Agent Skill**: [AHRConsulting/agent-skills](https://github.com/AHRConsulting/agent-skills) provides an installable `ahr-foundation` skill that teaches Copilot, Claude, and compatible agents the ROP conventions above.
 
 ## Versioning and scope
 
