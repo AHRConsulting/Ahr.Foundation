@@ -6,23 +6,15 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing v-prefixed SemVer tag
+        description: Existing v-prefixed SemVer tag to (re)publish
         required: true
-      mode:
-        description: Release operation
-        required: true
-        type: choice
-        options:
-          - dry-run
-          - publish
-          - github-release-only
-        default: dry-run
 
 permissions:
   contents: read
 
 jobs:
   build:
+    if: github.repository == 'AHRConsulting/Ahr.Foundation'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -88,7 +80,7 @@ jobs:
 
   publish:
     needs: build
-    if: github.event_name == 'push' || inputs.mode != 'dry-run'
+    if: github.repository == 'AHRConsulting/Ahr.Foundation'
     runs-on: ubuntu-latest
     environment: release
     permissions:
@@ -99,27 +91,34 @@ jobs:
         with:
           name: release-packages
           path: artifacts/packages
-      - name: Ensure package version is not already published
-        if: github.event_name == 'push' || inputs.mode == 'publish'
+      - name: Check whether package version is already published
+        id: nuget-check
         env:
           VERSION: ${{ needs.build.outputs.version }}
         run: |
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             "https://api.nuget.org/v3-flatcontainer/ahr.foundation/$VERSION/ahr.foundation.$VERSION.nupkg")"
-          if [ "$status" = "200" ]; then
-            echo "Ahr.Foundation $VERSION already exists on NuGet.org." >&2
-            echo "Use github-release-only only after independently verifying the published package." >&2
-            exit 1
-          fi
-          [ "$status" = "404" ]
+          case "$status" in
+            200)
+              echo "Ahr.Foundation $VERSION is already published on NuGet.org; skipping push and only refreshing the GitHub release." >&2
+              echo "published=true" >> "$GITHUB_OUTPUT"
+              ;;
+            404)
+              echo "published=false" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "Unexpected NuGet.org response status: $status" >&2
+              exit 1
+              ;;
+          esac
       - name: Request temporary NuGet.org API key
-        if: github.event_name == 'push' || inputs.mode == 'publish'
+        if: steps.nuget-check.outputs.published != 'true'
         uses: NuGet/login@v1
         id: nuget-login
         with:
           user: ${{ secrets.NUGET_USER }}
       - name: Push packages to NuGet.org
-        if: github.event_name == 'push' || inputs.mode == 'publish'
+        if: steps.nuget-check.outputs.published != 'true'
         env:
           NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
         run: dotnet nuget push artifacts/packages/Ahr.Foundation.${{ needs.build.outputs.version }}.nupkg --source https://api.nuget.org/v3/index.json --api-key "$NUGET_API_KEY"
