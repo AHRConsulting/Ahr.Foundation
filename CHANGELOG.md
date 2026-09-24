@@ -4,6 +4,16 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+## [0.1.1]
+
+### Added
+
+- `net10.0` build of `Ahr.Foundation` is now marked `IsAotCompatible`, and the NuGet package
+  displays as NativeAOT and trim compatible. No source or behavior changes; the library already
+  used no reflection or dynamic code generation.
+- `scripts/verify-aot.sh` publishes the packaged sample consumer with `PublishAot=true` and runs
+  the resulting native binary as a release-time regression check.
+
 ## [0.1.0]
 
 ### Added
@@ -25,5 +35,6 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - XML documentation, API reference generation, runnable samples, package-consumer verification,
   Source Link, deterministic builds, and symbol packages.
 
-[Unreleased]: https://github.com/AHRConsulting/Ahr.Foundation/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/AHRConsulting/Ahr.Foundation/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/AHRConsulting/Ahr.Foundation/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/AHRConsulting/Ahr.Foundation/releases/tag/v0.1.0

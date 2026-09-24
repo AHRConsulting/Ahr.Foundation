@@ -95,7 +95,8 @@ instructions](benchmarks/README.md) for filtered commands, methodology, and inte
 
 - **Guide**: Start with the [overview and guide](docs/index.md) for composition patterns and LINQ query syntax.
 - **Analyzers**: Review the [bundled Roslyn rules](docs/analyzers.md), their severities, and remediation examples.
-- **Performance**: Review the [benchmark scope and methodology](docs/performance.md).
+- **Performance**: Review the [benchmark scope and methodology](docs/performance.md), which also
+  covers NativeAOT and trimming compatibility.
 - **API Reference**: Generated from XML documentation comments with DocFX ([`docfx.json`](docfx.json)) and published by the [Deploy Docs](.github/workflows/docs.yml) workflow.
 - **Samples Project**: Runnable domain flows in [`samples/Ahr.Foundation.Samples`](samples/Ahr.Foundation.Samples).
 - **Release Workflow**: [`.github/workflows/release.yml`](.github/workflows/release.yml) builds and

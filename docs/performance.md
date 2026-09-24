@@ -45,3 +45,12 @@ machine, runtime, power settings, command, and benchmark source.
 Very small operations can be indistinguishable from the benchmark harness overhead. Treat a
 reported `0 ns` as below the reliable measurement resolution, not as a literal zero-time
 operation.
+
+## NativeAOT and trimming
+
+`Ahr.Foundation` targets `net10.0` with `IsAotCompatible` enabled: the library uses no reflection,
+dynamic code generation, or unannotated generics, so it is compatible with `PublishAot` and with
+trimming. The AOT/trim analyzer runs on every build of the library itself, so a change that
+introduces an incompatible pattern is caught as a build warning before release. `scripts/verify-aot.sh`
+publishes the packaged sample consumer with `PublishAot=true` and runs the resulting native binary
+as a release-time regression check.
