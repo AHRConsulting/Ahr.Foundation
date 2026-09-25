@@ -1,5 +1,13 @@
 # Overview & Guide
 
+## Installation
+
+Install the current stable package explicitly:
+
+```bash
+dotnet add package Ahr.Foundation --version 0.1.1
+```
+
 ## Railway-Oriented Programming (ROP)
 
 Operations compose as two tracks: **Success** and **Failure**. `Bind` continues on the success
@@ -180,10 +188,10 @@ Result<Customer> customer = await repository.FindLocalAsync(id)
     .OrElseAsync(() => repository.FindRemoteAsync(id));
 ```
 
-## AI Agent Skill
+## Agent Skill
 
 The [AHRConsulting/agent-skills](https://github.com/AHRConsulting/agent-skills) repository
-publishes an installable `ahr-foundation` skill that teaches Copilot, Claude, and compatible
+publishes an installable `ahr-foundation` skill for
 agents the conventions on this page: explicit `Success`/`Failure` construction, preferring
 `Bind`/`Map`/`Ensure` chains over imperative branching, and using `Result.Try`/`Result.TryAsync`
 at I/O boundaries.

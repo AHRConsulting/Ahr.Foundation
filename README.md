@@ -19,7 +19,7 @@
 `Ahr.Foundation` contains `readonly record struct` implementations of `Result`, `Result<T>`, `Result<T,TError>`, `Error`, and `Option<T>`. It targets .NET Standard 2.0 and .NET 10. The package also delivers `Ahr.Foundation.Analyzers`; diagnostic `AHRF001` prevents detectable default construction of result values, diagnostic `AHRF002` flags a manual try/catch that duplicates `Result.Try`/`Result.TryAsync`, diagnostic `AHRF003` flags a synchronous `Result.Try` call whose delegate discards an awaitable, suggesting `Result.TryAsync` instead, and diagnostic `AHRF004` flags an async delegate explicitly typed or cast as `Action` and passed to `Result.Try`, since such a delegate is async-void and can leak unobserved exceptions.
 
 ```bash
-dotnet add package Ahr.Foundation --version 0.1.0
+dotnet add package Ahr.Foundation --version 0.1.1
 ```
 
 ```csharp
@@ -76,7 +76,7 @@ example `-p:AhrFoundationVersion=0.2.0`.
 To verify the packed artifact through the sample application rather than a project reference:
 
 ```bash
-scripts/verify-package.sh 0.1.0
+scripts/verify-package.sh 0.1.1
 ```
 
 The repository includes reproducible BenchmarkDotNet baselines for `Result` and `Option`. Run all
@@ -101,11 +101,11 @@ instructions](benchmarks/README.md) for filtered commands, methodology, and inte
 - **Samples Project**: Runnable domain flows in [`samples/Ahr.Foundation.Samples`](samples/Ahr.Foundation.Samples).
 - **Release Workflow**: [`.github/workflows/release.yml`](.github/workflows/release.yml) builds and
   verifies tagged releases before publishing to NuGet.org through a protected environment.
-- **AI Agent Skill**: [AHRConsulting/agent-skills](https://github.com/AHRConsulting/agent-skills) provides an installable `ahr-foundation` skill that teaches Copilot, Claude, and compatible agents the ROP conventions above.
+- **Agent skill**: [AHRConsulting/agent-skills](https://github.com/AHRConsulting/agent-skills) provides an installable `ahr-foundation` skill for the ROP conventions above.
 
 ## Versioning and scope
 
-`0.1.0` is a stable NuGet release, not a prerelease. The `0.x` major version signals that feedback-driven API changes may still occur before `1.0.0`; breaking changes will be documented in the changelog and indicated by a minor-version increase.
+`0.1.1` is a stable NuGet release, not a prerelease. The `0.x` major version signals that feedback-driven API changes may still occur before `1.0.0`; breaking changes will be documented in the changelog and indicated by a minor-version increase.
 
 The package remains intentionally focused on platform-neutral `Result`, `Option`, and directly related composition helpers. New helpers are evaluated against real consumer requirements rather than expanding this into a general-purpose core library.
 
