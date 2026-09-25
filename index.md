@@ -28,7 +28,7 @@ while still handling every error path.
 Install the package via NuGet:
 
 ```bash
-dotnet add package Ahr.Foundation --version 0.1.0
+dotnet add package Ahr.Foundation --version 0.1.1
 ```
 
-`0.1.0` is a stable package. While the project remains on major version zero, minor releases may contain documented breaking changes based on consumer feedback.
+`0.1.1` is a stable package. While the project remains on major version zero, minor releases may contain documented breaking changes based on consumer feedback.
