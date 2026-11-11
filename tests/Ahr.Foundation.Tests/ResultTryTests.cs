@@ -73,7 +73,7 @@ public sealed class ResultTryTests
     public void TryOfT_NullReturnedValue_ThrowsArgumentNullException_NotConvertedToFailure()
     {
         ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => Result.Try<string>(() => null!));
-        Assert.Equal("value", exception.ParamName);
+        Assert.Equal("operation", exception.ParamName);
     }
 
     [Fact]
@@ -176,7 +176,7 @@ public sealed class ResultTryTests
     {
         ArgumentNullException exception = Assert.Throws<ArgumentNullException>(
             () => Result.Try<string, string>(() => null!, ex => ex.Message));
-        Assert.Equal("value", exception.ParamName);
+        Assert.Equal("operation", exception.ParamName);
     }
 
     // -- Result.TryAsync(Func<Task>) --
@@ -226,7 +226,7 @@ public sealed class ResultTryTests
     public async Task TryAsync_CanceledTask_Propagates()
     {
         using var cancellation = new CancellationTokenSource();
-        cancellation.Cancel();
+        await cancellation.CancelAsync();
         _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => Result.TryAsync(() => Task.FromCanceled(cancellation.Token)));
     }
@@ -281,7 +281,7 @@ public sealed class ResultTryTests
     public async Task TryAsyncOfT_CanceledTask_Propagates()
     {
         using var cancellation = new CancellationTokenSource();
-        cancellation.Cancel();
+        await cancellation.CancelAsync();
         _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => Result.TryAsync(() => Task.FromCanceled<int>(cancellation.Token)));
     }
@@ -306,7 +306,7 @@ public sealed class ResultTryTests
     {
         ArgumentNullException exception = await Assert.ThrowsAsync<ArgumentNullException>(
             () => Result.TryAsync(() => Task.FromResult<string>(null!)));
-        Assert.Equal("value", exception.ParamName);
+        Assert.Equal("operation", exception.ParamName);
     }
 
     [Fact]
@@ -363,7 +363,7 @@ public sealed class ResultTryTests
     public async Task TryAsyncOfTAndTError_CanceledTask_Propagates()
     {
         using var cancellation = new CancellationTokenSource();
-        cancellation.Cancel();
+        await cancellation.CancelAsync();
         _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => Result.TryAsync(() => Task.FromCanceled<int>(cancellation.Token), ex => ex.Message));
     }
@@ -426,6 +426,6 @@ public sealed class ResultTryTests
     {
         ArgumentNullException exception = await Assert.ThrowsAsync<ArgumentNullException>(
             () => Result.TryAsync(() => Task.FromResult<string>(null!), ex => ex.Message));
-        Assert.Equal("value", exception.ParamName);
+        Assert.Equal("operation", exception.ParamName);
     }
 }

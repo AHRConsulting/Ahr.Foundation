@@ -16,10 +16,26 @@
 
 ## Packages
 
-`Ahr.Foundation` contains `readonly record struct` implementations of `Result`, `Result<T>`, `Result<T,TError>`, `Error`, and `Option<T>`. It targets .NET Standard 2.0 and .NET 10. The package also delivers `Ahr.Foundation.Analyzers`; diagnostic `AHRF001` prevents detectable default construction of result values, diagnostic `AHRF002` flags a manual try/catch that duplicates `Result.Try`/`Result.TryAsync`, diagnostic `AHRF003` flags a synchronous `Result.Try` call whose delegate discards an awaitable, suggesting `Result.TryAsync` instead, and diagnostic `AHRF004` flags an async delegate explicitly typed or cast as `Action` and passed to `Result.Try`, since such a delegate is async-void and can leak unobserved exceptions.
+`Ahr.Foundation` contains `readonly record struct` implementations of `Result`, `Result<T>`, `Result<T,TError>`, `Error`, and `Option<T>`. It targets .NET Standard 2.0 and .NET 10. Full documentation is published at [ahrconsulting.github.io/Ahr.Foundation](https://ahrconsulting.github.io/Ahr.Foundation/).
+
+The package also delivers the `Ahr.Foundation.Analyzers` Roslyn rules:
+
+| Rule | Severity | Reports |
+| --- | --- | --- |
+| `AHRF001` | Error | `default` or parameterless construction of a result |
+| `AHRF002` | Info | A manual try/catch that `Result.Try` or `Result.TryAsync` can replace |
+| `AHRF003` | Warning | An awaitable operation passed to synchronous `Result.Try` |
+| `AHRF004` | Warning | An async `Action` delegate passed to `Result.Try` |
+| `AHRF005` | Info | A result array whose elements start uninitialized |
+| `AHRF006` | Warning | `Map`, `MapAsync`, `MapSome`, `MapSomeAsync`, `Select`, `Try`, or `TryAsync` producing a nullable value |
+| `AHRF007` | Info | A `TryAsync` operation that uses a cancellation token without passing it |
+| `AHRF008` | Warning | A `Tap` function that discards a result or option |
+| `AHRF009` | Info | `GetValueOrDefault` or `ToOption` on a result of an option discards the failure |
+| `AHRF010` | Warning | A statement that discards a result, so a failure is lost |
+| `AHRF011` | Info | A failure passed on by hand that `Bind` or `BindAsync` can replace |
 
 ```bash
-dotnet add package Ahr.Foundation --version 0.1.1
+dotnet add package Ahr.Foundation --version 0.2.0
 ```
 
 ```csharp
@@ -31,7 +47,7 @@ string text = result.Match(value => $"Value: {value}", error => error.Message);
 
 Result values must be created with `Success` or `Failure`. A default-initialized result has an explicit uninitialized state and every inspection or composition operation throws `InvalidOperationException`. `Option<T>.None` remains safely default-initialized. Result and option factories reject null payloads or errors; composition methods also reject null delegates, tasks, and task results.
 
-Composition uses `Map` when your function returns a plain value and `Bind` when it returns another `Result` or `Option` of the corresponding family. `MapError` transforms a failure without changing a success, while `Ensure` and `Where` validate successful values in the result and option families respectively. `ToOption` and `ToResult` convert between the two models when needed, and `GetValueOrDefault()`/`GetValueOrDefault(fallback)` extract the success value (or `default(T)`/`fallback` on failure) without an explicit `IsSuccess` check. `OrElse(fallback)`/`OrElse(Func<fallback>)`/`OrElseAsync(Func<Task<fallback>>)` return the original success/`Some` unchanged, or fall back to another `Result`/`Option` of the same type (eagerly, lazily, or asynchronously) on failure/`None`. `TaskCompositionExtensions` provides an `OrElseAsync` overload for `Task<Result>`/`Task<Result<T>>`/`Task<Result<T, TError>>`/`Task<Option<T>>`, so it can be chained directly off an unawaited task alongside `BindAsync`/`MapAsync`. LINQ query syntax is also supported, which suits pipelines where later steps need values bound earlier:
+Composition uses `Map` when your function returns a plain value and `Bind` when it returns another `Result` or `Option` of the corresponding family. `Tap` keeps the value, and a function returning the same family stops the pipeline on failure or `None`. `MapError` transforms a failure without changing a success, while `Ensure` and `Where` validate successful values in the result and option families respectively. `ToOption` and `ToResult` convert between the two models when needed, `FirstOrNone`, `SingleOrNone`, `LastOrNone`, `GetValueOrNone`, and `Values` bridge sequences and dictionaries to options, and `GetValueOrDefault()`/`GetValueOrDefault(fallback)` extract the success value (or `default(T)`/`fallback` on failure) without an explicit `IsSuccess` check. `OrElse(fallback)`/`OrElse(Func<fallback>)`/`OrElseAsync(Func<Task<fallback>>)` return the original success/`Some` unchanged, or fall back to another `Result`/`Option` of the same type (eagerly, lazily, or asynchronously) on failure/`None`. `TaskCompositionExtensions` provides an `OrElseAsync` overload for `Task<Result>`/`Task<Result<T>>`/`Task<Result<T, TError>>`/`Task<Option<T>>`, so it can be chained directly off an unawaited task alongside `BindAsync`/`MapAsync`. A lookup that can fail or find nothing returns `Result<Option<T>>`: a three-way `Match(onSome, onNone, onFailure)` handles all outcomes with values or actions, `TapSome`/`MapSome`/`BindSome` continue from a found value, and `EnsureSome`, `SomeOr`, and `BindNone` turn a missing value into a failure, a fallback value, or another lookup. For a list, `Traverse` runs a step that can fail on each item and returns all the values or the first failure, `Sequence` does the same for results that already exist, and `Partition` runs every item and returns the values and the errors separately; each has an async form that runs one item at a time. LINQ query syntax is also supported, which suits pipelines where later steps need values bound earlier:
 
 ```csharp
 Result<decimal> total =
@@ -42,7 +58,16 @@ Result<decimal> total =
 
 If any step fails the rest are skipped and the original error is returned. Query syntax is synchronous; use `BindAsync`/`MapAsync` for `Task`-based pipelines.
 
-Async composition is Task-based for `Result`, `Result<T>`, `Result<T,TError>`, and `Option<T>`. Adapt framework APIs returning `ValueTask<T>` at the boundary with the framework method `ValueTask<T>.AsTask()`:
+Async composition is Task-based for `Result`, `Result<T>`, `Result<T,TError>`, and `Option<T>`. Extensions on the unawaited `Task` accept both synchronous and asynchronous delegates, and `MatchAsync` ends a pipeline directly:
+
+```csharp
+string message = await LoadOrderAsync(id)
+    .MapAsync(order => order.Total)
+    .BindAsync(total => ChargeAsync(total))
+    .MatchAsync(receipt => $"Charged {receipt.Id}", error => error.Message);
+```
+
+Result and option values format without throwing (`Success(42)`, `Failure(message)`, `Some(42)`, `None`), so they are safe in logs, interpolation, and the debugger. Adapt framework APIs returning `ValueTask<T>` at the boundary with the framework method `ValueTask<T>.AsTask()`:
 
 ```csharp
 Task<Result<int>> task = result.BindAsync(value => LoadAsync(value).AsTask());
@@ -58,7 +83,13 @@ Result<Customer, DomainError> withCustomError = await Result.TryAsync(
     ex => DomainError.FromException(ex));
 ```
 
-`OperationCanceledException` always propagates unchanged; the custom-error overloads require an explicit `Func<Exception, TError>` error factory, while the built-in-`Error` overloads use `Error.FromException` automatically.
+The custom-error overloads require an explicit `Func<Exception, TError>` error factory, while the built-in-`Error` overloads use `Error.FromException` automatically. Overloads without a token propagate every `OperationCanceledException`. Pass the caller's token to propagate only that cancellation and turn others, such as an `HttpClient` timeout, into a `Failure`:
+
+```csharp
+Result<string> body = await Result.TryAsync(token => httpClient.GetStringAsync(url, token), cancellationToken);
+```
+
+Every `Try` and `TryAsync` overload also takes a `catchWhen` filter, so only expected exceptions become a `Failure` and any other exception propagates, as with a C# `when` filter. `Error.IsCancellation` tells a timeout apart from another failure, and `CatchCancellationAsync(error, cancellationToken)` turns the caller's own cancellation into that failure instead of throwing.
 
 ## Build
 
@@ -76,7 +107,7 @@ example `-p:AhrFoundationVersion=0.2.0`.
 To verify the packed artifact through the sample application rather than a project reference:
 
 ```bash
-scripts/verify-package.sh 0.1.1
+scripts/verify-package.sh 0.2.0
 ```
 
 The repository includes reproducible BenchmarkDotNet baselines for `Result` and `Option`. Run all
@@ -105,7 +136,7 @@ instructions](benchmarks/README.md) for filtered commands, methodology, and inte
 
 ## Versioning and scope
 
-`0.1.1` is a stable NuGet release, not a prerelease. The `0.x` major version signals that feedback-driven API changes may still occur before `1.0.0`; breaking changes will be documented in the changelog and indicated by a minor-version increase.
+`0.2.0` is a stable NuGet release, not a prerelease. The `0.x` major version signals that feedback-driven API changes may still occur before `1.0.0`; breaking changes will be documented in the changelog and indicated by a minor-version increase.
 
 The package remains intentionally focused on platform-neutral `Result`, `Option`, and directly related composition helpers. New helpers are evaluated against real consumer requirements rather than expanding this into a general-purpose core library.
 

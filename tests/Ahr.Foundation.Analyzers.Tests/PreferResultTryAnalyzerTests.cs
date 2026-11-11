@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Globalization;
 using Microsoft.CodeAnalysis;
 
 namespace Ahr.Foundation.Analyzers.Tests;
@@ -308,6 +309,64 @@ public sealed class PreferResultTryAnalyzerTests
 
         _ = Assert.Single(diagnostics);
     }
+
+    [Theory]
+    [InlineData("catch { return Result.Failure(new Error(\"failed\")); }")]
+    [InlineData("catch (IOException) { return Result.Failure(new Error(\"io\")); } catch (Exception ex) { return Result.Failure(new Error(ex.Message)); }")]
+    [InlineData("catch (OperationCanceledException) { throw; } catch (Exception ex) { return Result.Failure(new Error(ex.Message)); }")]
+    public async Task Analyze_CatchAllBuildsFailure_ReportsAHRF002(string catches)
+    {
+        ImmutableArray<Diagnostic> diagnostics = await AnalyzeAsync(WithCatches(catches));
+        Assert.Equal("AHRF002", Assert.Single(diagnostics).Id);
+    }
+
+    [Theory]
+    [InlineData("catch (OperationCanceledException) { return Result.Failure(new Error(\"cancelled\")); }")]
+    [InlineData("catch (TaskCanceledException) { return Result.Failure(new Error(\"cancelled\")); }")]
+    [InlineData("catch (OperationCanceledException) { return Result.Failure(new Error(\"cancelled\")); } catch (Exception ex) { return Result.Failure(new Error(ex.Message)); }")]
+    [InlineData("catch (IOException ex) { return Result.Failure(new Error(ex.Message)); }")]
+    [InlineData("catch (Exception ex) when (ex is IOException) { return Result.Failure(new Error(ex.Message)); }")]
+    public async Task Analyze_CatchThatResultTryCannotReproduce_ReportsNoDiagnostic(string catches)
+    {
+        ImmutableArray<Diagnostic> diagnostics = await AnalyzeAsync(WithCatches(catches));
+        Assert.Empty(diagnostics);
+    }
+
+    [Fact]
+    public async Task Analyze_TryCatchFinally_ReportsWithFinallyHint()
+    {
+        ImmutableArray<Diagnostic> diagnostics = await AnalyzeAsync(WithCatches("catch (Exception ex) { return Result.Failure(new Error(ex.Message)); } finally { DoWork(); }"));
+
+        Diagnostic diagnostic = Assert.Single(diagnostics);
+        Assert.EndsWith("keep the finally block in a try/finally around the call", diagnostic.GetMessage(CultureInfo.InvariantCulture), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Analyze_TryCatchWithoutFinally_HasNoFinallyHint()
+    {
+        Diagnostic diagnostic = Assert.Single(await AnalyzeAsync(WithCatches("catch (Exception ex) { return Result.Failure(new Error(ex.Message)); }")));
+        Assert.EndsWith("failure", diagnostic.GetMessage(CultureInfo.InvariantCulture), StringComparison.Ordinal);
+    }
+
+    private static string WithCatches(string catches) => $$"""
+        using Ahr.Foundation;
+        using System;
+        using System.IO;
+        using System.Threading.Tasks;
+        class C
+        {
+            Result M()
+            {
+                try
+                {
+                    DoWork();
+                    return Result.Success();
+                }
+                {{catches}}
+            }
+            void DoWork() { }
+        }
+        """;
 
     private static async Task<ImmutableArray<Diagnostic>> AnalyzeAsync(string source)
         => await AnalyzerTestHarness.AnalyzeAsync(

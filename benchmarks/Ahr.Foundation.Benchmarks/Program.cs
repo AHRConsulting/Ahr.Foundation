@@ -1,7 +1,9 @@
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Running;
 
-internal class Program
+namespace Ahr.Foundation.Benchmarks;
+
+internal static class Program
 {
     private static void Main(string[] args)
     {

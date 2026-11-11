@@ -1,6 +1,9 @@
+using System.Diagnostics;
+
 namespace Ahr.Foundation;
 
 /// <summary>Represents success with <typeparamref name="T"/> or failure with <see cref="Error"/>.</summary>
+[DebuggerDisplay("{ToString(),nq}")]
 public readonly record struct Result<T>
 {
     private readonly Result<T, Error> _inner;
@@ -20,7 +23,7 @@ public readonly record struct Result<T>
     /// <summary>Creates failure with a valid error.</summary>
     public static Result<T> Failure(Error error)
     {
-        _ = Guard.NotNull(error.Message, nameof(error));
+        _ = Guard.ValidError(error, nameof(error));
         return new(Result<T, Error>.Failure(error));
     }
 
@@ -59,8 +62,14 @@ public readonly record struct Result<T>
     public async Task<Result<TOut>> MapAsync<TOut>(Func<T, Task<TOut>> map) => new(await _inner.MapAsync(map).ConfigureAwait(false));
     /// <summary>Maps a failure.</summary>
     public Result<T> MapError(Func<Error, Error> map) => new(_inner.MapError(map));
+    /// <summary>Maps a failure to a custom error type.</summary>
+    public Result<T, TOutError> MapError<TOutError>(Func<Error, TOutError> map) => _inner.MapError(map);
     /// <summary>Asynchronously maps a failure.</summary>
     public async Task<Result<T>> MapErrorAsync(Func<Error, Task<Error>> map) => new(await _inner.MapErrorAsync(map).ConfigureAwait(false));
+    /// <summary>Asynchronously maps a failure to a custom error type.</summary>
+    public Task<Result<T, TOutError>> MapErrorAsync<TOutError>(Func<Error, Task<TOutError>> map) => _inner.MapErrorAsync(map);
+    /// <summary>Drops the success value, keeping only whether the operation succeeded.</summary>
+    public Result ToResult() => Bind(static _ => Result.Success());
     /// <summary>Binds a success.</summary>
     public Result<TOut> Bind<TOut>(Func<T, Result<TOut>> bind)
     {
@@ -96,11 +105,35 @@ public readonly record struct Result<T>
         _ = _inner.Tap(action);
         return this;
     }
+    /// <summary>Invokes a step on success and keeps this value; a failed step becomes the failure.</summary>
+    public Result<T> Tap(Func<T, Result> action)
+    {
+        _ = Guard.NotNull(action, nameof(action));
+        return Bind(value => action(value).Bind(() => Result<T>.Success(value)));
+    }
+    /// <summary>Invokes a step on success and keeps this value; a failed step becomes the failure.</summary>
+    public Result<T> Tap<TOut>(Func<T, Result<TOut>> action)
+    {
+        _ = Guard.NotNull(action, nameof(action));
+        return Bind(value => action(value).Map(_ => value));
+    }
     /// <summary>Asynchronously invokes an action on success.</summary>
     public async Task<Result<T>> TapAsync(Func<T, Task> action)
     {
         _ = await _inner.TapAsync(action).ConfigureAwait(false);
         return this;
+    }
+    /// <summary>Asynchronously invokes a step on success and keeps this value; a failed step becomes the failure.</summary>
+    public Task<Result<T>> TapAsync(Func<T, Task<Result>> action)
+    {
+        _ = Guard.NotNull(action, nameof(action));
+        return BindAsync(async value => (await Guard.NotNull(action(value), nameof(action)).ConfigureAwait(false)).Bind(() => Result<T>.Success(value)));
+    }
+    /// <summary>Asynchronously invokes a step on success and keeps this value; a failed step becomes the failure.</summary>
+    public Task<Result<T>> TapAsync<TOut>(Func<T, Task<Result<TOut>>> action)
+    {
+        _ = Guard.NotNull(action, nameof(action));
+        return BindAsync(async value => (await Guard.NotNull(action(value), nameof(action)).ConfigureAwait(false)).Map(_ => value));
     }
     /// <summary>Invokes an action on failure.</summary>
     public Result<T> TapError(Action<Error> action)
@@ -116,8 +149,12 @@ public readonly record struct Result<T>
     }
     /// <summary>Ensures a success satisfies a predicate.</summary>
     public Result<T> Ensure(Func<T, bool> predicate, Error error) => new(_inner.Ensure(predicate, error));
+    /// <summary>Ensures a success satisfies a predicate, failing with an error created from <paramref name="message"/>.</summary>
+    public Result<T> Ensure(Func<T, bool> predicate, string message) => Ensure(predicate, Error.FromMessage(message));
     /// <summary>Asynchronously ensures a success satisfies a predicate.</summary>
     public async Task<Result<T>> EnsureAsync(Func<T, Task<bool>> predicate, Error error) => new(await _inner.EnsureAsync(predicate, error).ConfigureAwait(false));
+    /// <summary>Asynchronously ensures a success satisfies a predicate, failing with an error created from <paramref name="message"/>.</summary>
+    public Task<Result<T>> EnsureAsync(Func<T, Task<bool>> predicate, string message) => EnsureAsync(predicate, Error.FromMessage(message));
     /// <summary>Returns this on success; otherwise returns the eagerly evaluated fallback.</summary>
     public Result<T> OrElse(Result<T> fallback) => IsSuccess ? this : fallback;
     /// <summary>Returns this on success; otherwise invokes and returns the fallback factory.</summary>
@@ -138,4 +175,6 @@ public readonly record struct Result<T>
     public T? GetValueOrDefault() => _inner.GetValueOrDefault();
     /// <summary>Returns the success value or a non-null fallback.</summary>
     public T GetValueOrDefault(T fallback) => _inner.GetValueOrDefault(fallback);
+    /// <summary>Returns <c>Success(value)</c>, <c>Failure(message)</c>, or <c>Uninitialized</c> without throwing.</summary>
+    public override string ToString() => _inner.ToString();
 }

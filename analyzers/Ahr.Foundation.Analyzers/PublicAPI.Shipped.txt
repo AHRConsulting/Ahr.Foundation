@@ -20,3 +20,44 @@ override Ahr.Foundation.Analyzers.PreferResultTryAnalyzer.Initialize(Microsoft.C
 override Ahr.Foundation.Analyzers.PreferResultTryAnalyzer.SupportedDiagnostics.get -> System.Collections.Immutable.ImmutableArray<Microsoft.CodeAnalysis.DiagnosticDescriptor!>
 override Ahr.Foundation.Analyzers.PreferResultTryAsyncAnalyzer.Initialize(Microsoft.CodeAnalysis.Diagnostics.AnalysisContext! context) -> void
 override Ahr.Foundation.Analyzers.PreferResultTryAsyncAnalyzer.SupportedDiagnostics.get -> System.Collections.Immutable.ImmutableArray<Microsoft.CodeAnalysis.DiagnosticDescriptor!>
+Ahr.Foundation.Analyzers.DiscardedTapResultAnalyzer
+Ahr.Foundation.Analyzers.DiscardedResultAnalyzer
+Ahr.Foundation.Analyzers.FlattenedResultOfOptionAnalyzer
+Ahr.Foundation.Analyzers.DiscardedTapResultAnalyzer.DiscardedTapResultAnalyzer() -> void
+Ahr.Foundation.Analyzers.DiscardedResultAnalyzer.DiscardedResultAnalyzer() -> void
+Ahr.Foundation.Analyzers.FlattenedResultOfOptionAnalyzer.FlattenedResultOfOptionAnalyzer() -> void
+Ahr.Foundation.Analyzers.ManualFailurePassThroughAnalyzer.ManualFailurePassThroughAnalyzer() -> void
+Ahr.Foundation.Analyzers.ManualFailurePassThroughCodeFixProvider.ManualFailurePassThroughCodeFixProvider() -> void
+Ahr.Foundation.Analyzers.ManualFailurePassThroughAnalyzer
+Ahr.Foundation.Analyzers.ManualFailurePassThroughCodeFixProvider
+Ahr.Foundation.Analyzers.NullableMapResultAnalyzer
+Ahr.Foundation.Analyzers.NullableMapResultAnalyzer.NullableMapResultAnalyzer() -> void
+Ahr.Foundation.Analyzers.PreferCancellableTryAsyncAnalyzer
+Ahr.Foundation.Analyzers.PreferCancellableTryAsyncAnalyzer.PreferCancellableTryAsyncAnalyzer() -> void
+Ahr.Foundation.Analyzers.PreferCancellableTryAsyncCodeFixProvider
+Ahr.Foundation.Analyzers.PreferCancellableTryAsyncCodeFixProvider.PreferCancellableTryAsyncCodeFixProvider() -> void
+const Ahr.Foundation.Analyzers.DefaultResultConstructionAnalyzer.ArrayDiagnosticId = "AHRF005" -> string!
+const Ahr.Foundation.Analyzers.DiscardedTapResultAnalyzer.DiagnosticId = "AHRF008" -> string!
+const Ahr.Foundation.Analyzers.DiscardedResultAnalyzer.DiagnosticId = "AHRF010" -> string!
+const Ahr.Foundation.Analyzers.FlattenedResultOfOptionAnalyzer.DiagnosticId = "AHRF009" -> string!
+const Ahr.Foundation.Analyzers.ManualFailurePassThroughAnalyzer.DiagnosticId = "AHRF011" -> string!
+const Ahr.Foundation.Analyzers.NullableMapResultAnalyzer.DiagnosticId = "AHRF006" -> string!
+const Ahr.Foundation.Analyzers.PreferCancellableTryAsyncAnalyzer.DiagnosticId = "AHRF007" -> string!
+override Ahr.Foundation.Analyzers.DiscardedTapResultAnalyzer.Initialize(Microsoft.CodeAnalysis.Diagnostics.AnalysisContext! context) -> void
+override Ahr.Foundation.Analyzers.DiscardedResultAnalyzer.Initialize(Microsoft.CodeAnalysis.Diagnostics.AnalysisContext! context) -> void
+override Ahr.Foundation.Analyzers.FlattenedResultOfOptionAnalyzer.Initialize(Microsoft.CodeAnalysis.Diagnostics.AnalysisContext! context) -> void
+override Ahr.Foundation.Analyzers.ManualFailurePassThroughAnalyzer.Initialize(Microsoft.CodeAnalysis.Diagnostics.AnalysisContext! context) -> void
+override Ahr.Foundation.Analyzers.DiscardedTapResultAnalyzer.SupportedDiagnostics.get -> System.Collections.Immutable.ImmutableArray<Microsoft.CodeAnalysis.DiagnosticDescriptor!>
+override Ahr.Foundation.Analyzers.DiscardedResultAnalyzer.SupportedDiagnostics.get -> System.Collections.Immutable.ImmutableArray<Microsoft.CodeAnalysis.DiagnosticDescriptor!>
+override Ahr.Foundation.Analyzers.FlattenedResultOfOptionAnalyzer.SupportedDiagnostics.get -> System.Collections.Immutable.ImmutableArray<Microsoft.CodeAnalysis.DiagnosticDescriptor!>
+override Ahr.Foundation.Analyzers.ManualFailurePassThroughAnalyzer.SupportedDiagnostics.get -> System.Collections.Immutable.ImmutableArray<Microsoft.CodeAnalysis.DiagnosticDescriptor!>
+override Ahr.Foundation.Analyzers.ManualFailurePassThroughCodeFixProvider.FixableDiagnosticIds.get -> System.Collections.Immutable.ImmutableArray<string!>
+override Ahr.Foundation.Analyzers.ManualFailurePassThroughCodeFixProvider.GetFixAllProvider() -> Microsoft.CodeAnalysis.CodeFixes.FixAllProvider!
+override Ahr.Foundation.Analyzers.ManualFailurePassThroughCodeFixProvider.RegisterCodeFixesAsync(Microsoft.CodeAnalysis.CodeFixes.CodeFixContext context) -> System.Threading.Tasks.Task!
+override Ahr.Foundation.Analyzers.NullableMapResultAnalyzer.Initialize(Microsoft.CodeAnalysis.Diagnostics.AnalysisContext! context) -> void
+override Ahr.Foundation.Analyzers.NullableMapResultAnalyzer.SupportedDiagnostics.get -> System.Collections.Immutable.ImmutableArray<Microsoft.CodeAnalysis.DiagnosticDescriptor!>
+override Ahr.Foundation.Analyzers.PreferCancellableTryAsyncAnalyzer.Initialize(Microsoft.CodeAnalysis.Diagnostics.AnalysisContext! context) -> void
+override Ahr.Foundation.Analyzers.PreferCancellableTryAsyncAnalyzer.SupportedDiagnostics.get -> System.Collections.Immutable.ImmutableArray<Microsoft.CodeAnalysis.DiagnosticDescriptor!>
+override Ahr.Foundation.Analyzers.PreferCancellableTryAsyncCodeFixProvider.FixableDiagnosticIds.get -> System.Collections.Immutable.ImmutableArray<string!>
+override Ahr.Foundation.Analyzers.PreferCancellableTryAsyncCodeFixProvider.GetFixAllProvider() -> Microsoft.CodeAnalysis.CodeFixes.FixAllProvider!
+override Ahr.Foundation.Analyzers.PreferCancellableTryAsyncCodeFixProvider.RegisterCodeFixesAsync(Microsoft.CodeAnalysis.CodeFixes.CodeFixContext context) -> System.Threading.Tasks.Task!

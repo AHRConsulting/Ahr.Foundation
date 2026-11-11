@@ -1,6 +1,9 @@
+using System.Diagnostics;
+
 namespace Ahr.Foundation;
 
 /// <summary>Represents success with <typeparamref name="T"/> or failure with <typeparamref name="TError"/>.</summary>
+[DebuggerDisplay("{ToString(),nq}")]
 public readonly record struct Result<T, TError>
 {
     private readonly ResultState _state;
@@ -168,6 +171,13 @@ public readonly record struct Result<T, TError>
         return this;
     }
 
+    /// <summary>Invokes a step on success and keeps this value; a failed step becomes the failure.</summary>
+    public Result<T, TError> Tap<TOut>(Func<T, Result<TOut, TError>> action)
+    {
+        Validate(action, nameof(action));
+        return Bind(value => action(value).Map(_ => value));
+    }
+
     /// <summary>Asynchronously invokes an action on success.</summary>
     public async Task<Result<T, TError>> TapAsync(Func<T, Task> action)
     {
@@ -178,6 +188,13 @@ public readonly record struct Result<T, TError>
         }
 
         return this;
+    }
+
+    /// <summary>Asynchronously invokes a step on success and keeps this value; a failed step becomes the failure.</summary>
+    public Task<Result<T, TError>> TapAsync<TOut>(Func<T, Task<Result<TOut, TError>>> action)
+    {
+        Validate(action, nameof(action));
+        return BindAsync(async value => (await Guard.NotNull(action(value), nameof(action)).ConfigureAwait(false)).Map(_ => value));
     }
 
     /// <summary>Invokes an action on failure.</summary>
@@ -263,6 +280,15 @@ public readonly record struct Result<T, TError>
         ThrowIfUninitialized();
         return _state.IsSuccess ? _value! : Guard.NotNull(fallback, nameof(fallback));
     }
+
+    /// <summary>Returns <c>Success(value)</c>, <c>Failure(error)</c>, or <c>Uninitialized</c> without throwing.</summary>
+    public override string ToString() => _state switch
+    {
+        ResultState.Success => $"Success({_value})",
+        ResultState.Failure => $"Failure({_error})",
+        ResultState.Uninitialized => "Uninitialized",
+        _ => "Uninitialized",
+    };
 
     private void Validate<TDelegate>(TDelegate value, string name)
     {

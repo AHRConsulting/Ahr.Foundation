@@ -16,14 +16,14 @@ public sealed class PreferResultTryAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor _rule = new(
         DiagnosticId,
         "Prefer Result.Try or Result.TryAsync over a manual try/catch",
-        "Use 'Result.Try' or 'Result.TryAsync' instead of a manual try/catch that constructs a '{0}' failure",
+        "Use 'Result.Try' or 'Result.TryAsync' instead of a manual try/catch that constructs a '{0}' failure{1}",
         "Usage",
         DiagnosticSeverity.Info,
         isEnabledByDefault: true,
-        description: "A try block that only produces a Success and a catch block that only produces a Failure duplicates the behavior of Result.Try/Result.TryAsync.");
+        description: "A try block that only produces a Success and a catch block that only produces a Failure duplicates the behavior of Result.Try/Result.TryAsync. A finally block stays: put it in a try/finally around the call, or use a using declaration inside the operation.");
 
     /// <inheritdoc />
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [_rule];
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(_rule);
 
     /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
@@ -44,6 +44,11 @@ public sealed class PreferResultTryAnalyzer : DiagnosticAnalyzer
         SemanticModel model = context.SemanticModel;
         CancellationToken cancellationToken = context.CancellationToken;
 
+        INamedTypeSymbol? exceptionType = model.Compilation.GetTypeByMetadataName("System.Exception");
+        INamedTypeSymbol? canceledType = model.Compilation.GetTypeByMetadataName("System.OperationCanceledException");
+
+        // Result.Try catches every exception except cancellation, which it rethrows. Only a catch-all that builds
+        // the failure matches that; handling cancellation or one specific exception type does not.
         string? resultTypeName = null;
         foreach (CatchClauseSyntax catchClause in tryStatement.Catches)
         {
@@ -52,10 +57,17 @@ public sealed class PreferResultTryAnalyzer : DiagnosticAnalyzer
                 continue;
             }
 
-            resultTypeName ??= FindResultMemberCall(catchClause, tryStatement, model, "Failure", cancellationToken);
-            if (resultTypeName is not null)
+            ITypeSymbol? caught = catchClause.Declaration is { } declaration
+                ? model.GetTypeInfo(declaration.Type, cancellationToken).Type
+                : exceptionType;
+            if (InheritsFrom(caught, canceledType))
             {
-                break;
+                return;
+            }
+
+            if (catchClause.Filter is null && SymbolEqualityComparer.Default.Equals(caught, exceptionType))
+            {
+                resultTypeName ??= FindResultMemberCall(catchClause, tryStatement, model, "Failure", cancellationToken);
             }
         }
 
@@ -69,7 +81,21 @@ public sealed class PreferResultTryAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        context.ReportDiagnostic(Diagnostic.Create(_rule, tryStatement.TryKeyword.GetLocation(), resultTypeName));
+        var finallyHint = tryStatement.Finally is null ? string.Empty : "; keep the finally block in a try/finally around the call";
+        context.ReportDiagnostic(Diagnostic.Create(_rule, tryStatement.TryKeyword.GetLocation(), resultTypeName, finallyHint));
+    }
+
+    private static bool InheritsFrom(ITypeSymbol? type, INamedTypeSymbol? baseType)
+    {
+        for (ITypeSymbol? current = type; current is not null && baseType is not null; current = current.BaseType)
+        {
+            if (SymbolEqualityComparer.Default.Equals(current, baseType))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool IsPureRethrow(CatchClauseSyntax catchClause)

@@ -12,6 +12,9 @@ public sealed class DefaultResultConstructionAnalyzer : DiagnosticAnalyzer
     /// <summary>The identifier for default result construction.</summary>
     public const string DiagnosticId = "AHRF001";
 
+    /// <summary>The identifier for result arrays created without element initializers.</summary>
+    public const string ArrayDiagnosticId = "AHRF005";
+
     private static readonly DiagnosticDescriptor _rule = new(
         DiagnosticId,
         "Result values must be created explicitly",
@@ -21,8 +24,17 @@ public sealed class DefaultResultConstructionAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         description: "Default-constructed Result values are explicitly uninitialized and throw when inspected or composed.");
 
+    private static readonly DiagnosticDescriptor _arrayRule = new(
+        ArrayDiagnosticId,
+        "Result array elements start uninitialized",
+        "Elements of this '{0}' array are uninitialized until each one is assigned with Success or Failure",
+        "Correctness",
+        DiagnosticSeverity.Info,
+        isEnabledByDefault: true,
+        description: "A Result array created without element initializers holds uninitialized values that throw when inspected or composed. Assign every element before use.");
+
     /// <inheritdoc />
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [_rule];
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(_rule, _arrayRule);
 
     /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
@@ -37,7 +49,7 @@ public sealed class DefaultResultConstructionAnalyzer : DiagnosticAnalyzer
     private static void AnalyzeDefaultValue(OperationAnalysisContext context)
     {
         var operation = (IDefaultValueOperation)context.Operation;
-        ReportIfResult(context, operation.Type, operation.Syntax.GetLocation());
+        ReportIfResult(context, _rule, operation.Type, operation.Syntax.GetLocation());
     }
 
     private static void AnalyzeObjectCreation(OperationAnalysisContext context)
@@ -45,7 +57,7 @@ public sealed class DefaultResultConstructionAnalyzer : DiagnosticAnalyzer
         var operation = (IObjectCreationOperation)context.Operation;
         if (operation.Arguments.Length == 0)
         {
-            ReportIfResult(context, operation.Type, operation.Syntax.GetLocation());
+            ReportIfResult(context, _rule, operation.Type, operation.Syntax.GetLocation());
         }
     }
 
@@ -56,11 +68,11 @@ public sealed class DefaultResultConstructionAnalyzer : DiagnosticAnalyzer
         if (arrayType is not null &&
             (operation.Initializer is null || operation.Initializer.ElementValues.IsEmpty))
         {
-            ReportIfResult(context, arrayType.ElementType, operation.Syntax.GetLocation());
+            ReportIfResult(context, _arrayRule, arrayType.ElementType, operation.Syntax.GetLocation());
         }
     }
 
-    private static void ReportIfResult(OperationAnalysisContext context, ITypeSymbol? type, Location location)
+    private static void ReportIfResult(OperationAnalysisContext context, DiagnosticDescriptor rule, ITypeSymbol? type, Location location)
     {
         if (type is not INamedTypeSymbol named ||
             named.ContainingNamespace.ToDisplayString() != "Ahr.Foundation" ||
@@ -70,6 +82,6 @@ public sealed class DefaultResultConstructionAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        context.ReportDiagnostic(Diagnostic.Create(_rule, location, named.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)));
+        context.ReportDiagnostic(Diagnostic.Create(rule, location, named.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)));
     }
 }

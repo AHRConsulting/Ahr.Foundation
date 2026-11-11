@@ -21,6 +21,7 @@ internal static class AnalyzerTestHarness
         string source)
     {
         CSharpCompilation compilation = CreateCompilation(definitions, source);
+        Assert.Empty(compilation.GetDiagnostics(TestContext.Current.CancellationToken).Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error));
         return await compilation
             .WithAnalyzers([analyzer])
             .GetAnalyzerDiagnosticsAsync(TestContext.Current.CancellationToken);

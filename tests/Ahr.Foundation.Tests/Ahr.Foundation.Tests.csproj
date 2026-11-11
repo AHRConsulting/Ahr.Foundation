@@ -12,8 +12,12 @@
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" />
   </ItemGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(AhrFoundationTestTarget)' == ''">
     <ProjectReference Include="..\..\src\Ahr.Foundation\Ahr.Foundation.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(AhrFoundationTestTarget)' != ''">
+    <ProjectReference Include="..\..\src\Ahr.Foundation\Ahr.Foundation.csproj"
+                      SetTargetFramework="TargetFramework=$(AhrFoundationTestTarget)" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />

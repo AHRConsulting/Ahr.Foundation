@@ -14,7 +14,7 @@ namespace Ahr.Foundation.Analyzers;
 public sealed class DefaultResultConstructionCodeFixProvider : CodeFixProvider
 {
     /// <inheritdoc />
-    public override ImmutableArray<string> FixableDiagnosticIds => [DefaultResultConstructionAnalyzer.DiagnosticId];
+    public override ImmutableArray<string> FixableDiagnosticIds => ImmutableArray.Create(DefaultResultConstructionAnalyzer.DiagnosticId);
 
     /// <inheritdoc />
     public override FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;

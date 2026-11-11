@@ -8,12 +8,15 @@
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);RS2008;RS1038</NoWarn>
+    <!-- The oldest compiler the bundled analyzers support (.NET 6 SDK, Visual Studio 2022 17.0).
+         A compiler older than the referenced Roslyn skips the analyzers (CS9057), so keep this
+         at the floor rather than the SDK's own version. AnalyzerCompilerFloorTests guards it. -->
+    <AhrAnalyzerRoslynVersion>4.0.1</AhrAnalyzerRoslynVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="$(AhrAnalyzerRoslynVersion)" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" VersionOverride="$(AhrAnalyzerRoslynVersion)" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
-    <PackageReference Include="System.Composition" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup Condition="'$(DocfxBuild)' != 'true'">
     <AdditionalFiles Include="PublicAPI.Shipped.txt" />

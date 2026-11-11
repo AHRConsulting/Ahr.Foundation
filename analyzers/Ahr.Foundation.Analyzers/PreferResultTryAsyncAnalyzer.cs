@@ -34,7 +34,7 @@ public sealed class PreferResultTryAsyncAnalyzer : DiagnosticAnalyzer
         description: "An async lambda explicitly targeting Action (e.g. Result.Try((Action)(async () => await op()))) compiles to an async void delegate. Async void methods cannot be awaited or observed by the caller: any exception thrown after the first await escapes to the SynchronizationContext/unobserved-exception handler instead of being caught by Try, which can crash the process. Use Result.TryAsync instead so the operation is properly awaited. Note: an un-cast async lambda passed directly to Result.Try (e.g. Result.Try(async () => await op())) instead resolves to Try<T>(Func<T>) - since the compiler prefers a Task-returning conversion over an Action one - and is reported as AHRF003, not AHRF004.");
 
     /// <inheritdoc />
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [_rule, _asyncVoidRule];
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(_rule, _asyncVoidRule);
 
     /// <inheritdoc />
     public override void Initialize(AnalysisContext context)

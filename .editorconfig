@@ -20,7 +20,7 @@ csharp_indent_case_contents = true
 csharp_indent_switch_labels = true
 csharp_space_after_cast = false
 csharp_preserve_single_line_statements = false
-csharp_preserve_single_line_blocks = false
+csharp_preserve_single_line_blocks = true
 csharp_style_namespace_declarations = file_scoped:warning
 csharp_style_prefer_primary_constructors = false:suggestion
 csharp_style_prefer_top_level_statements = false:suggestion
@@ -63,8 +63,8 @@ dotnet_style_prefer_auto_properties = true:warning
 dotnet_style_prefer_collection_expression = when_types_exactly_match:warning
 dotnet_style_prefer_simplified_boolean_expressions = true:warning
 dotnet_style_prefer_simplified_interpolation = true:suggestion
-dotnet_style_prefer_conditional_expression_over_assignment = true:suggestion
-dotnet_style_prefer_conditional_expression_over_return = true:suggestion
+dotnet_style_prefer_conditional_expression_over_assignment = false
+dotnet_style_prefer_conditional_expression_over_return = false
 dotnet_style_prefer_compound_assignment = true:suggestion
 dotnet_style_null_propagation = true:suggestion
 dotnet_style_coalesce_expression = true:suggestion
@@ -153,6 +153,12 @@ dotnet_naming_style.underscore_camel_case.required_prefix = _
 
 dotnet_diagnostic.IDE0005.severity = warning
 dotnet_diagnostic.IDE0055.severity = warning
+# Ahr.Foundation's result-pattern analyzers ship at info. As warnings, with TreatWarningsAsErrors, these fail the build:
+# a hand-written try/catch building a Result, a flattened result of an option, and a failure passed on by hand.
+# A repo without the analyzers ignores them.
+dotnet_diagnostic.AHRF002.severity = warning
+dotnet_diagnostic.AHRF009.severity = warning
+dotnet_diagnostic.AHRF011.severity = warning
 dotnet_diagnostic.CA1062.severity = none
 dotnet_diagnostic.CA1707.severity = none
 
