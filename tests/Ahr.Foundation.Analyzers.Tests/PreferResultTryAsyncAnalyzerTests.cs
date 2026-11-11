@@ -120,7 +120,7 @@ public sealed class PreferResultTryAsyncAnalyzerTests
     }
 
     [Fact]
-    public async Task Analyze_TryAction_MethodGroupReturnsTask_ReportsAHRF003()
+    public async Task Analyze_Try_MethodGroupReturnsTask_ReportsAHRF003()
     {
         ImmutableArray<Diagnostic> diagnostics = await AnalyzeAsync("""
             using Ahr.Foundation;
@@ -130,7 +130,7 @@ public sealed class PreferResultTryAsyncAnalyzerTests
             {
                 void M()
                 {
-                    _ = Result.Try((Action)FetchAsync);
+                    _ = Result.Try(FetchAsync);
                 }
                 Task FetchAsync() => Task.CompletedTask;
             }

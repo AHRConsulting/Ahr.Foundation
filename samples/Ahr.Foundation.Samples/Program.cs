@@ -2,6 +2,13 @@ namespace Ahr.Foundation.Samples;
 
 public static class Program
 {
+    private static readonly Dictionary<string, decimal> _prices = new()
+    {
+        ["book"] = 12.50m,
+        ["free"] = 0m,
+        ["unsaved"] = 7.25m,
+    };
+
     public static async Task<int> Main()
     {
         Console.WriteLine("=== Ahr.Foundation Railway-Oriented Programming Samples ===");
@@ -84,6 +91,42 @@ public static class Program
             error => Console.WriteLine($"OrElseAsync failure: {error.Message}"));
         Console.WriteLine();
 
+        // 7. A Lookup Pipeline Mixing Synchronous and Asynchronous Steps
+        Console.WriteLine("--- Scenario 7: Lookup Pipeline with ToResultAsync, Ensure, and Tap ---");
+        Console.WriteLine(await DescribePriceAsync("book"));
+        Console.WriteLine(await DescribePriceAsync("unknown"));
+        Console.WriteLine(await DescribePriceAsync("free"));
+        Console.WriteLine(await DescribePriceAsync("unsaved"));
+        Console.WriteLine();
+
+        // 8. Option Helpers over Sequences and Dictionaries
+        Console.WriteLine("--- Scenario 8: Option Helpers ---");
+        int[] numbers = [1, 2, 3, 4];
+        Console.WriteLine($"SingleOrNone(x > 3): {numbers.SingleOrNone(x => x > 3)}");
+        Console.WriteLine($"LastOrNone(even): {numbers.LastOrNone(x => x % 2 == 0)}");
+        Console.WriteLine($"GetValueOrNone(missing): {_prices.GetValueOrNone("missing")}");
+        string[] skus = ["book", "missing", "free"];
+        Console.WriteLine($"Values: {string.Join(", ", skus.Select(_prices.GetValueOrNone).Values())}");
+        Console.WriteLine();
+
+        // 9. Cancellation-Aware Result.TryAsync
+        Console.WriteLine("--- Scenario 9: Cancellation-Aware TryAsync ---");
+        Result<string> timedOut = await Result.TryAsync(SimulateTimeoutAsync, CancellationToken.None);
+        Console.WriteLine($"A timeout becomes a failure: {timedOut}");
+
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+        try
+        {
+            _ = await Result.TryAsync(SimulateTimeoutAsync, cancellation.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            Console.WriteLine("The caller's cancellation propagates.");
+        }
+
+        Console.WriteLine();
+
         Console.WriteLine("All sample scenarios executed successfully.");
         return 0;
     }
@@ -122,6 +165,24 @@ public static class Program
     private static Task<Customer> GetCustomerAsync(string customerId) => customerId == "CUST-1"
             ? Task.FromResult(new Customer(customerId, "Ada Lovelace"))
             : throw new InvalidOperationException($"Customer '{customerId}' was not found.");
+
+    // TapAsync keeps the price; a failed save stops the pipeline before the logging step.
+    private static Task<string> DescribePriceAsync(string sku) => FindPriceAsync(sku)
+            .ToResultAsync(new Error($"No price for '{sku}'."))
+            .EnsureAsync(price => price > 0, $"The price for '{sku}' must be positive.")
+            .TapAsync(price => SavePrice(sku, price))
+            .TapAsync(price => Console.WriteLine($"Saved {sku} at {price:F2}"))
+            .MatchAsync(price => $"Success: {sku} costs {price:F2}", error => $"Expected Failure: {error.Message}");
+
+    private static Task<Option<decimal>> FindPriceAsync(string sku) => Task.FromResult(_prices.GetValueOrNone(sku));
+
+    private static Result SavePrice(string sku, decimal price) => sku == "unsaved"
+            ? Result.Failure(new Error($"Could not save '{sku}' at {price:F2}."))
+            : Result.Success();
+
+    // HttpClient reports a timeout this way, as a cancellation the caller did not request.
+    private static Task<string> SimulateTimeoutAsync(CancellationToken cancellationToken) =>
+        Task.FromException<string>(new TaskCanceledException("The request timed out."));
 
     private sealed record User(string Email, int Age);
     private sealed record OrderConfirmation(string ConfirmationNumber, decimal Amount);

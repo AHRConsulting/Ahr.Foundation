@@ -1,6 +1,9 @@
+using System.Diagnostics;
+
 namespace Ahr.Foundation;
 
 /// <summary>Represents a present non-null value or no value.</summary>
+[DebuggerDisplay("{ToString(),nq}")]
 public readonly record struct Option<T>
 {
     private readonly T? _value;
@@ -111,6 +114,12 @@ public readonly record struct Option<T>
 
         return this;
     }
+    /// <summary>Invokes a step for a present value and keeps it; a step returning None makes this None.</summary>
+    public Option<T> Tap<TOut>(Func<T, Option<TOut>> action)
+    {
+        _ = Guard.NotNull(action, nameof(action));
+        return Bind(value => action(value).Map(_ => value));
+    }
     /// <summary>Asynchronously invokes an action for a present value.</summary>
     public async Task<Option<T>> TapAsync(Func<T, Task> action)
     {
@@ -121,6 +130,12 @@ public readonly record struct Option<T>
         }
 
         return this;
+    }
+    /// <summary>Asynchronously invokes a step for a present value and keeps it; a step returning None makes this None.</summary>
+    public Task<Option<T>> TapAsync<TOut>(Func<T, Task<Option<TOut>>> action)
+    {
+        _ = Guard.NotNull(action, nameof(action));
+        return BindAsync(async value => (await Guard.NotNull(action(value), nameof(action)).ConfigureAwait(false)).Map(_ => value));
     }
     /// <summary>Returns this if present; otherwise returns the eagerly evaluated fallback.</summary>
     public Option<T> OrElse(Option<T> fallback) => IsSome ? this : fallback;
@@ -149,8 +164,10 @@ public readonly record struct Option<T>
     /// <summary>Converts Some to success and None to failure.</summary>
     public Result<T> ToResult(Error error)
     {
-        _ = Guard.NotNull(error.Message, nameof(error));
+        _ = Guard.ValidError(error, nameof(error));
 
         return IsSome ? Result<T>.Success(_value!) : Result<T>.Failure(error);
     }
+    /// <summary>Returns <c>Some(value)</c> or <c>None</c> without throwing.</summary>
+    public override string ToString() => IsSome ? $"Some({_value})" : "None";
 }

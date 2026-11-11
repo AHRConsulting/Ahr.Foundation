@@ -41,6 +41,14 @@ for path in \
   grep -Fxq "$path" <<<"$package_contents"
 done
 
+package_readme="$(unzip -p "$package" README.md)"
+grep -Fq "dotnet add package Ahr.Foundation --version $version" <<<"$package_readme"
+if relative_links="$(grep -Eo '\]\([^)#][^)]*\)|src="[^"]*"' <<<"$package_readme" | grep -Ev '\(https://|src="https://')"; then
+  echo "The packed readme contains relative links or images that NuGet.org cannot render:" >&2
+  echo "$relative_links" >&2
+  exit 1
+fi
+
 for path in \
   lib/netstandard2.0/Ahr.Foundation.pdb \
   lib/net10.0/Ahr.Foundation.pdb; do
@@ -74,12 +82,17 @@ dotnet restore "$sample" \
   --property:UseLocalAhrFoundationPackage=true \
   --property:AhrFoundationPackageVersion="$version"
 
-dotnet run \
+sample_output="$(dotnet run \
   --project "$sample" \
   --configuration Release \
   --no-restore \
   --property:UseLocalAhrFoundationPackage=true \
-  --property:AhrFoundationPackageVersion="$version"
+  --property:AhrFoundationPackageVersion="$version")"
+echo "$sample_output"
+grep -Fq "All sample scenarios executed successfully." <<<"$sample_output"
+grep -Fq "Expected Failure: Could not save 'unsaved'" <<<"$sample_output"
+grep -Fq "A timeout becomes a failure: Failure(" <<<"$sample_output"
+grep -Fq "The caller's cancellation propagates." <<<"$sample_output"
 
 mkdir -p "$analyzer_smoke"
 cat > "$analyzer_smoke/AnalyzerSmoke.csproj" <<EOF
@@ -87,6 +100,7 @@ cat > "$analyzer_smoke/AnalyzerSmoke.csproj" <<EOF
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <UseLocalAhrFoundationPackage>true</UseLocalAhrFoundationPackage>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Ahr.Foundation" VersionOverride="$version" />

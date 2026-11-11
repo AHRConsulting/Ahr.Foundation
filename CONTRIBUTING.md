@@ -12,12 +12,15 @@
 4. Keep tests deterministic, independent, and focused on observable behavior. Use xUnit v3 native
    assertions and the `Method_Scenario_ExpectedBehavior` naming convention. Do not weaken or delete
    coverage solely to make a change pass.
+   This repository's `.editorconfig` raises `AHRF002`, `AHRF009`, and `AHRF011` to warnings, so
+   with warnings treated as errors they fail the build here. Packages ship them at Info.
 5. Run format verification, Release build, all tests, and package inspection:
    ```bash
    dotnet restore Ahr.Foundation.slnx --locked-mode
    dotnet format Ahr.Foundation.slnx --verify-no-changes --no-restore
    dotnet build Ahr.Foundation.slnx -c Release --no-restore
    dotnet test --solution Ahr.Foundation.slnx -c Release --no-build
+   dotnet test --project tests/Ahr.Foundation.Tests/Ahr.Foundation.Tests.csproj -c Release -p:AhrFoundationTestTarget=netstandard2.0
    dotnet pack src/Ahr.Foundation/Ahr.Foundation.csproj -c Release --no-build -p:AhrFoundationVersion=0.1.0
    scripts/verify-package.sh 0.1.0
    ```

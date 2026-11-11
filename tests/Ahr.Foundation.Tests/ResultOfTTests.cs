@@ -79,6 +79,71 @@ public sealed class ResultOfTTests
         Assert.Equal(new Error("worse"), result.Error);
     }
 
+    private sealed record ApiError(string Code);
+
+    [Fact]
+    public void MapError_ToCustomError_ChangesOnlyTheFailure()
+    {
+        Result<int, ApiError> failed = Result<int>.Failure(new Error("bad")).MapError(error => new ApiError(error.Message));
+        Result<int, ApiError> succeeded = Result<int>.Success(1).MapError(error => new ApiError(error.Message));
+
+        Assert.Equal(new ApiError("bad"), failed.Error);
+        Assert.Equal(1, succeeded.Value);
+    }
+
+    [Fact]
+    public void MapError_ReturningError_StillKeepsResultOfT()
+    {
+#pragma warning disable IDE0008 // 'var' shows which overload was chosen.
+        var result = Result<int>.Failure(new Error("bad")).MapError(error => new Error($"{error.Message}!"));
+#pragma warning restore IDE0008
+
+        _ = Assert.IsType<Result<int>>(result);
+        Assert.Equal(new Error("bad!"), result.Error);
+    }
+
+    [Fact]
+    public async Task MapErrorAsync_ToCustomError_ChangesOnlyTheFailure()
+    {
+        Result<int, ApiError> direct = await Result<int>.Failure(new Error("bad")).MapErrorAsync(error => Task.FromResult(new ApiError(error.Message)));
+        Result<int, ApiError> synchronous = await Task.FromResult(Result<int>.Failure(new Error("bad"))).MapErrorAsync(error => new ApiError(error.Message));
+        Result<int, ApiError> asynchronous = await Task.FromResult(Result<int>.Success(1)).MapErrorAsync(error => Task.FromResult(new ApiError(error.Message)));
+#pragma warning disable IDE0008 // 'var' shows which overload was chosen.
+        var unchanged = await Task.FromResult(Result<int>.Failure(new Error("bad"))).MapErrorAsync(error => Task.FromResult(new Error("worse")));
+#pragma warning restore IDE0008
+
+        Assert.Equal(new ApiError("bad"), direct.Error);
+        Assert.Equal(new ApiError("bad"), synchronous.Error);
+        Assert.Equal(1, asynchronous.Value);
+        _ = Assert.IsType<Result<int>>(unchanged);
+    }
+
+    [Fact]
+    public void MapError_ToCustomError_NullMapper_ThrowsWithMapParameter()
+    {
+        Func<Error, ApiError> map = null!;
+        Assert.Equal("map", Assert.Throws<ArgumentNullException>(() => Result<int>.Failure(new Error("bad")).MapError(map)).ParamName);
+    }
+
+    [Fact]
+    public async Task ToResult_DropsTheValueAndKeepsTheFailure()
+    {
+        Assert.True(Result<int>.Success(1).ToResult().IsSuccess);
+        Assert.Equal(new Error("bad"), Result<int>.Failure(new Error("bad")).ToResult().Error);
+        Assert.True((await Task.FromResult(Result<int>.Success(1)).ToResultAsync()).IsSuccess);
+        Assert.Equal(new Error("bad"), (await Task.FromResult(Result<int>.Failure(new Error("bad"))).ToResultAsync()).Error);
+    }
+
+    [Fact]
+    public async Task ToResultAsync_EndsAResultOfOptionChain()
+    {
+        Result restored = await Task.FromResult(Result<Option<int>>.Success(Option<int>.Some(1)))
+            .TapSomeAsync(_ => Result.Success())
+            .ToResultAsync();
+
+        Assert.True(restored.IsSuccess);
+    }
+
     [Fact]
     public void Map_Failure_DoesNotInvokeMapper()
     {

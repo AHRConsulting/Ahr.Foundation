@@ -34,7 +34,7 @@
     <AdditionalFiles Include="PublicAPI.Unshipped.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="../../README.md" Pack="true" PackagePath="/" Link="README.md" />
+    <None Include="PACKAGE.md" Pack="true" PackagePath="README.md" />
     <None Include="../../CHANGELOG.md" Pack="true" PackagePath="/" Link="CHANGELOG.md" />
     <None Include="../../assets/package-icon.png" Pack="true" PackagePath="/" Link="package-icon.png" />
     <None Include="../../analyzers/Ahr.Foundation.Analyzers/bin/$(Configuration)/netstandard2.0/Ahr.Foundation.Analyzers.dll"

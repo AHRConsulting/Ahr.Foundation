@@ -58,7 +58,7 @@ public sealed class DefaultResultConstructionAnalyzerTests
             {
                 Ahr.Foundation.Result A() => new Ahr.Foundation.Result();
                 Ahr.Foundation.Result<int> B() => new Ahr.Foundation.Result<int>();
-                Ahr.Foundation.Result<int, string> C() => new Ahr.Foundation.Result<int, string>();
+                Ahr.Foundation.Result<int, string> D() => new Ahr.Foundation.Result<int, string>();
             }
             """);
         Assert.Equal(3, diagnostics.Length);
@@ -73,17 +73,33 @@ public sealed class DefaultResultConstructionAnalyzerTests
     }
 
     [Fact]
-    public async Task Analyze_ZeroInitializedArray_ReportsAHRF001()
+    public async Task Analyze_ZeroInitializedArray_ReportsAHRF005()
     {
         ImmutableArray<Diagnostic> diagnostics = await AnalyzeAsync("class C { object M() => new Ahr.Foundation.Result[2]; }");
-        Assert.Equal("AHRF001", Assert.Single(diagnostics).Id);
+        Diagnostic diagnostic = Assert.Single(diagnostics);
+        Assert.Equal("AHRF005", diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Info, diagnostic.Severity);
     }
 
     [Fact]
-    public async Task Analyze_EmptyInitializedArray_ReportsAHRF001()
+    public async Task Analyze_EmptyInitializedArray_ReportsAHRF005()
     {
-        ImmutableArray<Diagnostic> diagnostics = await AnalyzeAsync("class C { object M() => new Ahr.Foundation.Result<int>[2] { }; }");
-        Assert.Equal("AHRF001", Assert.Single(diagnostics).Id);
+        ImmutableArray<Diagnostic> diagnostics = await AnalyzeAsync("class C { object M() => new Ahr.Foundation.Result<int>[] { }; }");
+        Assert.Equal("AHRF005", Assert.Single(diagnostics).Id);
+    }
+
+    [Fact]
+    public async Task Analyze_CustomErrorResultArray_ReportsAHRF005()
+    {
+        ImmutableArray<Diagnostic> diagnostics = await AnalyzeAsync("class C { object M() => new Ahr.Foundation.Result<int, string>[3]; }");
+        Assert.Equal("AHRF005", Assert.Single(diagnostics).Id);
+    }
+
+    [Fact]
+    public async Task Analyze_OptionArray_ReportsNothing()
+    {
+        ImmutableArray<Diagnostic> diagnostics = await AnalyzeAsync("class C { object M() => new Ahr.Foundation.Option<int>[3]; }");
+        Assert.Empty(diagnostics);
     }
 
     [Fact]

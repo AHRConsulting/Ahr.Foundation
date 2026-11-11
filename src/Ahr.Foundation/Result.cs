@@ -1,6 +1,9 @@
+using System.Diagnostics;
+
 namespace Ahr.Foundation;
 
 /// <summary>Represents success without a payload or failure with an <see cref="Error"/>.</summary>
+[DebuggerDisplay("{ToString(),nq}")]
 public readonly record struct Result
 {
     private readonly ResultState _state;
@@ -50,23 +53,31 @@ public readonly record struct Result
     /// <summary>Creates failure.</summary>
     public static Result Failure(Error error)
     {
-        _ = Guard.NotNull(error.Message, nameof(error));
+        _ = Guard.ValidError(error, nameof(error));
         return new(ResultState.Failure, error);
     }
 
+    private static readonly Func<Exception, bool> _catchAll = static _ => true;
+
+    // Result<T> never holds null, so a null success gets a message that names the cause instead of a bare ArgumentNullException.
+    private static T SuccessFromTry<T>(T value, string method, string parameterName) =>
+        value ?? throw new ArgumentNullException(
+            parameterName,
+            $"The operation passed to {method} returned null, and a result cannot hold null. Return an Option<T> (for example with ToOption()), or convert the value inside the operation.");
+
     /// <summary>Invokes an operation, converting an exception into a failure with <see cref="Error.FromException(Exception)"/>. <see cref="OperationCanceledException"/> propagates unchanged.</summary>
-    public static Result Try(Action operation)
+    public static Result Try(Action operation) => Try(operation, _catchAll);
+
+    /// <summary>Invokes an operation, converting an exception that <paramref name="catchWhen"/> accepts into a failure with <see cref="Error.FromException(Exception)"/>. Other exceptions propagate unchanged, as with a C# <c>when</c> filter. <see cref="OperationCanceledException"/> propagates unchanged.</summary>
+    public static Result Try(Action operation, Func<Exception, bool> catchWhen)
     {
         _ = Guard.NotNull(operation, nameof(operation));
+        _ = Guard.NotNull(catchWhen, nameof(catchWhen));
         try
         {
             operation();
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException && catchWhen(ex))
         {
             return ex.ToFailure();
         }
@@ -75,78 +86,74 @@ public readonly record struct Result
     }
 
     /// <summary>Invokes an operation, converting a success value into <see cref="Result{T}"/> or an exception into a failure with <see cref="Error.FromException(Exception)"/>. <see cref="OperationCanceledException"/> propagates unchanged.</summary>
-    public static Result<T> Try<T>(Func<T> operation)
+    public static Result<T> Try<T>(Func<T> operation) => Try(operation, _catchAll);
+
+    /// <summary>Invokes an operation, converting a success value into <see cref="Result{T}"/> or an exception that <paramref name="catchWhen"/> accepts into a failure with <see cref="Error.FromException(Exception)"/>. Other exceptions propagate unchanged, as with a C# <c>when</c> filter. <see cref="OperationCanceledException"/> propagates unchanged.</summary>
+    public static Result<T> Try<T>(Func<T> operation, Func<Exception, bool> catchWhen)
     {
         _ = Guard.NotNull(operation, nameof(operation));
+        _ = Guard.NotNull(catchWhen, nameof(catchWhen));
         T value;
         try
         {
             value = operation();
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException && catchWhen(ex))
         {
             return ex.ToFailure<T>();
         }
 
-        return value.ToSuccess();
+        return SuccessFromTry(value, nameof(Try), nameof(operation)).ToSuccess();
     }
 
     /// <summary>Invokes an operation, converting a success value into <see cref="Result{T, TError}"/> or an exception into a failure produced by <paramref name="errorFactory"/>. <see cref="OperationCanceledException"/> propagates unchanged.</summary>
-    public static Result<T, TError> Try<T, TError>(Func<T> operation, Func<Exception, TError> errorFactory)
+    public static Result<T, TError> Try<T, TError>(Func<T> operation, Func<Exception, TError> errorFactory) => Try(operation, _catchAll, errorFactory);
+
+    /// <summary>Invokes an operation, converting a success value into <see cref="Result{T, TError}"/> or an exception that <paramref name="catchWhen"/> accepts into a failure produced by <paramref name="errorFactory"/>. Other exceptions propagate unchanged, as with a C# <c>when</c> filter. <see cref="OperationCanceledException"/> propagates unchanged.</summary>
+    public static Result<T, TError> Try<T, TError>(Func<T> operation, Func<Exception, bool> catchWhen, Func<Exception, TError> errorFactory)
     {
         _ = Guard.NotNull(operation, nameof(operation));
+        _ = Guard.NotNull(catchWhen, nameof(catchWhen));
         _ = Guard.NotNull(errorFactory, nameof(errorFactory));
         T value;
         try
         {
             value = operation();
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException && catchWhen(ex))
         {
             return Result<T, TError>.Failure(errorFactory(ex));
         }
 
-        return Result<T, TError>.Success(value);
+        return Result<T, TError>.Success(SuccessFromTry(value, nameof(Try), nameof(operation)));
     }
 
     /// <summary>Asynchronously invokes an operation, converting an exception into a failure with <see cref="Error.FromException(Exception)"/>. <see cref="OperationCanceledException"/> propagates unchanged.</summary>
-    public static async Task<Result> TryAsync(Func<Task> operation)
+    public static Task<Result> TryAsync(Func<Task> operation) =>
+        TryAsync(operation, _catchAll);
+
+    /// <summary>Asynchronously invokes an operation, converting an exception that <paramref name="catchWhen"/> accepts into a failure with <see cref="Error.FromException(Exception)"/>. Other exceptions propagate unchanged, as with a C# <c>when</c> filter. <see cref="OperationCanceledException"/> propagates unchanged.</summary>
+    public static async Task<Result> TryAsync(Func<Task> operation, Func<Exception, bool> catchWhen)
     {
         _ = Guard.NotNull(operation, nameof(operation));
+        _ = Guard.NotNull(catchWhen, nameof(catchWhen));
 
         Task task;
         try
         {
             task = operation();
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException && catchWhen(ex))
         {
             return ex.ToFailure();
         }
 
         _ = Guard.NotNull(task, nameof(operation));
-
         try
         {
             await task.ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException && catchWhen(ex))
         {
             return ex.ToFailure();
         }
@@ -155,20 +162,21 @@ public readonly record struct Result
     }
 
     /// <summary>Asynchronously invokes an operation, converting a success value into <see cref="Result{T}"/> or an exception into a failure with <see cref="Error.FromException(Exception)"/>. <see cref="OperationCanceledException"/> propagates unchanged.</summary>
-    public static async Task<Result<T>> TryAsync<T>(Func<Task<T>> operation)
+    public static Task<Result<T>> TryAsync<T>(Func<Task<T>> operation) =>
+        TryAsync(operation, _catchAll);
+
+    /// <summary>Asynchronously invokes an operation, converting a success value into <see cref="Result{T}"/> or an exception that <paramref name="catchWhen"/> accepts into a failure with <see cref="Error.FromException(Exception)"/>. Other exceptions propagate unchanged, as with a C# <c>when</c> filter. <see cref="OperationCanceledException"/> propagates unchanged.</summary>
+    public static async Task<Result<T>> TryAsync<T>(Func<Task<T>> operation, Func<Exception, bool> catchWhen)
     {
         _ = Guard.NotNull(operation, nameof(operation));
+        _ = Guard.NotNull(catchWhen, nameof(catchWhen));
 
         Task<T> task;
         try
         {
             task = operation();
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException && catchWhen(ex))
         {
             return ex.ToFailure<T>();
         }
@@ -180,39 +188,33 @@ public readonly record struct Result
         {
             value = await task.ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException && catchWhen(ex))
         {
             return ex.ToFailure<T>();
         }
 
-        return value.ToSuccess();
+        return SuccessFromTry(value, nameof(TryAsync), nameof(operation)).ToSuccess();
     }
 
     /// <summary>Asynchronously invokes an operation, converting a success value into <see cref="Result{T, TError}"/> or an exception into a failure produced by <paramref name="errorFactory"/>. <see cref="OperationCanceledException"/> propagates unchanged.</summary>
-    public static async Task<Result<T, TError>> TryAsync<T, TError>(Func<Task<T>> operation, Func<Exception, TError> errorFactory)
+    public static Task<Result<T, TError>> TryAsync<T, TError>(Func<Task<T>> operation, Func<Exception, TError> errorFactory) =>
+        TryAsync(operation, _catchAll, errorFactory);
+
+    /// <summary>Asynchronously invokes an operation, converting a success value into <see cref="Result{T, TError}"/> or an exception that <paramref name="catchWhen"/> accepts into a failure produced by <paramref name="errorFactory"/>. Other exceptions propagate unchanged, as with a C# <c>when</c> filter. <see cref="OperationCanceledException"/> propagates unchanged.</summary>
+    public static async Task<Result<T, TError>> TryAsync<T, TError>(Func<Task<T>> operation, Func<Exception, bool> catchWhen, Func<Exception, TError> errorFactory)
     {
         _ = Guard.NotNull(operation, nameof(operation));
+        _ = Guard.NotNull(catchWhen, nameof(catchWhen));
         _ = Guard.NotNull(errorFactory, nameof(errorFactory));
-
-        Result<T, TError> FromException(Exception exception) =>
-            Result<T, TError>.Failure(errorFactory(exception));
 
         Task<T> task;
         try
         {
             task = operation();
         }
-        catch (OperationCanceledException)
+        catch (Exception ex) when (ex is not OperationCanceledException && catchWhen(ex))
         {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            return FromException(ex);
+            return Result<T, TError>.Failure(errorFactory(ex));
         }
 
         _ = Guard.NotNull(task, nameof(operation));
@@ -222,16 +224,119 @@ public readonly record struct Result
         {
             value = await task.ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        catch (Exception ex) when (ex is not OperationCanceledException && catchWhen(ex))
         {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            return FromException(ex);
+            return Result<T, TError>.Failure(errorFactory(ex));
         }
 
-        return Result<T, TError>.Success(value);
+        return Result<T, TError>.Success(SuccessFromTry(value, nameof(TryAsync), nameof(operation)));
+    }
+
+    /// <summary>Asynchronously invokes a cancellable operation, converting an exception into a failure with <see cref="Error.FromException(Exception)"/>. <see cref="OperationCanceledException"/> propagates only when <paramref name="cancellationToken"/> is canceled; any other cancellation, such as a timeout, becomes a failure.</summary>
+    public static Task<Result> TryAsync(Func<CancellationToken, Task> operation, CancellationToken cancellationToken) =>
+        TryAsync(operation, _catchAll, cancellationToken);
+
+    /// <summary>Asynchronously invokes a cancellable operation, converting an exception that <paramref name="catchWhen"/> accepts into a failure with <see cref="Error.FromException(Exception)"/>. Other exceptions propagate unchanged, as with a C# <c>when</c> filter. <see cref="OperationCanceledException"/> propagates only when <paramref name="cancellationToken"/> is canceled; any other cancellation, such as a timeout, becomes a failure without consulting <paramref name="catchWhen"/>.</summary>
+    public static async Task<Result> TryAsync(Func<CancellationToken, Task> operation, Func<Exception, bool> catchWhen, CancellationToken cancellationToken)
+    {
+        _ = Guard.NotNull(operation, nameof(operation));
+        _ = Guard.NotNull(catchWhen, nameof(catchWhen));
+        cancellationToken.ThrowIfCancellationRequested();
+
+        Task task;
+        try
+        {
+            task = operation(cancellationToken);
+        }
+        catch (Exception ex) when (ex is OperationCanceledException ? !cancellationToken.IsCancellationRequested : catchWhen(ex))
+        {
+            return ex.ToFailure();
+        }
+
+        _ = Guard.NotNull(task, nameof(operation));
+        try
+        {
+            await task.ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is OperationCanceledException ? !cancellationToken.IsCancellationRequested : catchWhen(ex))
+        {
+            return ex.ToFailure();
+        }
+
+        return Success();
+    }
+
+    /// <summary>Asynchronously invokes a cancellable operation, converting a success value into <see cref="Result{T}"/> or an exception into a failure with <see cref="Error.FromException(Exception)"/>. <see cref="OperationCanceledException"/> propagates only when <paramref name="cancellationToken"/> is canceled; any other cancellation, such as a timeout, becomes a failure.</summary>
+    public static Task<Result<T>> TryAsync<T>(Func<CancellationToken, Task<T>> operation, CancellationToken cancellationToken) =>
+        TryAsync(operation, _catchAll, cancellationToken);
+
+    /// <summary>Asynchronously invokes a cancellable operation, converting a success value into <see cref="Result{T}"/> or an exception that <paramref name="catchWhen"/> accepts into a failure with <see cref="Error.FromException(Exception)"/>. Other exceptions propagate unchanged, as with a C# <c>when</c> filter. <see cref="OperationCanceledException"/> propagates only when <paramref name="cancellationToken"/> is canceled; any other cancellation, such as a timeout, becomes a failure without consulting <paramref name="catchWhen"/>.</summary>
+    public static async Task<Result<T>> TryAsync<T>(Func<CancellationToken, Task<T>> operation, Func<Exception, bool> catchWhen, CancellationToken cancellationToken)
+    {
+        _ = Guard.NotNull(operation, nameof(operation));
+        _ = Guard.NotNull(catchWhen, nameof(catchWhen));
+        cancellationToken.ThrowIfCancellationRequested();
+
+        Task<T> task;
+        try
+        {
+            task = operation(cancellationToken);
+        }
+        catch (Exception ex) when (ex is OperationCanceledException ? !cancellationToken.IsCancellationRequested : catchWhen(ex))
+        {
+            return ex.ToFailure<T>();
+        }
+
+        _ = Guard.NotNull(task, nameof(operation));
+
+        T value;
+        try
+        {
+            value = await task.ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is OperationCanceledException ? !cancellationToken.IsCancellationRequested : catchWhen(ex))
+        {
+            return ex.ToFailure<T>();
+        }
+
+        return SuccessFromTry(value, nameof(TryAsync), nameof(operation)).ToSuccess();
+    }
+
+    /// <summary>Asynchronously invokes a cancellable operation, converting a success value into <see cref="Result{T, TError}"/> or an exception into a failure produced by <paramref name="errorFactory"/>. <see cref="OperationCanceledException"/> propagates only when <paramref name="cancellationToken"/> is canceled; any other cancellation, such as a timeout, becomes a failure.</summary>
+    public static Task<Result<T, TError>> TryAsync<T, TError>(Func<CancellationToken, Task<T>> operation, Func<Exception, TError> errorFactory, CancellationToken cancellationToken) =>
+        TryAsync(operation, _catchAll, errorFactory, cancellationToken);
+
+    /// <summary>Asynchronously invokes a cancellable operation, converting a success value into <see cref="Result{T, TError}"/> or an exception that <paramref name="catchWhen"/> accepts into a failure produced by <paramref name="errorFactory"/>. Other exceptions propagate unchanged, as with a C# <c>when</c> filter. <see cref="OperationCanceledException"/> propagates only when <paramref name="cancellationToken"/> is canceled; any other cancellation, such as a timeout, becomes a failure without consulting <paramref name="catchWhen"/>.</summary>
+    public static async Task<Result<T, TError>> TryAsync<T, TError>(Func<CancellationToken, Task<T>> operation, Func<Exception, bool> catchWhen, Func<Exception, TError> errorFactory, CancellationToken cancellationToken)
+    {
+        _ = Guard.NotNull(operation, nameof(operation));
+        _ = Guard.NotNull(catchWhen, nameof(catchWhen));
+        _ = Guard.NotNull(errorFactory, nameof(errorFactory));
+        cancellationToken.ThrowIfCancellationRequested();
+
+        Task<T> task;
+        try
+        {
+            task = operation(cancellationToken);
+        }
+        catch (Exception ex) when (ex is OperationCanceledException ? !cancellationToken.IsCancellationRequested : catchWhen(ex))
+        {
+            return Result<T, TError>.Failure(errorFactory(ex));
+        }
+
+        _ = Guard.NotNull(task, nameof(operation));
+
+        T value;
+        try
+        {
+            value = await task.ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is OperationCanceledException ? !cancellationToken.IsCancellationRequested : catchWhen(ex))
+        {
+            return Result<T, TError>.Failure(errorFactory(ex));
+        }
+
+        return Result<T, TError>.Success(SuccessFromTry(value, nameof(TryAsync), nameof(operation)));
     }
 
     /// <summary>Matches the active branch.</summary>
@@ -327,6 +432,20 @@ public readonly record struct Result
         return this;
     }
 
+    /// <summary>Invokes a step on success; a failed step becomes the failure.</summary>
+    public Result Tap(Func<Result> action)
+    {
+        _ = Guard.NotNull(action, nameof(action));
+        return Bind(action);
+    }
+
+    /// <summary>Invokes a step on success; a failed step becomes the failure.</summary>
+    public Result Tap<TOut>(Func<Result<TOut>> action)
+    {
+        _ = Guard.NotNull(action, nameof(action));
+        return Bind(() => action().Bind(_ => Success()));
+    }
+
     /// <summary>Asynchronously invokes an action on success.</summary>
     public async Task<Result> TapAsync(Func<Task> action)
     {
@@ -338,6 +457,20 @@ public readonly record struct Result
         }
 
         return this;
+    }
+
+    /// <summary>Asynchronously invokes a step on success; a failed step becomes the failure.</summary>
+    public Task<Result> TapAsync(Func<Task<Result>> action)
+    {
+        _ = Guard.NotNull(action, nameof(action));
+        return BindAsync(action);
+    }
+
+    /// <summary>Asynchronously invokes a step on success; a failed step becomes the failure.</summary>
+    public Task<Result> TapAsync<TOut>(Func<Task<Result<TOut>>> action)
+    {
+        _ = Guard.NotNull(action, nameof(action));
+        return BindAsync(async () => (await Guard.NotNull(action(), nameof(action)).ConfigureAwait(false)).Bind(_ => Success()));
     }
 
     /// <summary>Invokes an action on failure.</summary>
@@ -366,6 +499,22 @@ public readonly record struct Result
         return this;
     }
 
+    /// <summary>Maps a failure error; a success is returned unchanged.</summary>
+    public Result MapError(Func<Error, Error> map)
+    {
+        ThrowIfUninitialized();
+        _ = Guard.NotNull(map, nameof(map));
+        return _state.IsSuccess ? this : Failure(map(_error));
+    }
+
+    /// <summary>Asynchronously maps a failure error; a success is returned unchanged.</summary>
+    public async Task<Result> MapErrorAsync(Func<Error, Task<Error>> map)
+    {
+        ThrowIfUninitialized();
+        _ = Guard.NotNull(map, nameof(map));
+        return _state.IsSuccess ? this : Failure(await Guard.NotNull(map(_error), nameof(map)).ConfigureAwait(false));
+    }
+
     /// <summary>Returns this on success; otherwise returns the eagerly evaluated fallback.</summary>
     public Result OrElse(Result fallback)
     {
@@ -388,6 +537,15 @@ public readonly record struct Result
         _ = Guard.NotNull(fallback, nameof(fallback));
         return _state.IsSuccess ? this : await Guard.NotNull(fallback(), nameof(fallback)).ConfigureAwait(false);
     }
+
+    /// <summary>Returns <c>Success</c>, <c>Failure(message)</c>, or <c>Uninitialized</c> without throwing.</summary>
+    public override string ToString() => _state switch
+    {
+        ResultState.Success => "Success",
+        ResultState.Failure => $"Failure({_error})",
+        ResultState.Uninitialized => "Uninitialized",
+        _ => "Uninitialized",
+    };
 
     private void ThrowIfUninitialized() => Guard.ThrowIfUninitialized(_state);
 }

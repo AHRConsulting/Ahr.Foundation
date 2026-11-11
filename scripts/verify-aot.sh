@@ -67,5 +67,8 @@ test -x "$binary"
 output="$("$binary")"
 
 grep -Fq "All sample scenarios executed successfully." <<<"$output"
+grep -Fq "Expected Failure: Could not save 'unsaved'" <<<"$output"
+grep -Fq "A timeout becomes a failure: Failure(" <<<"$output"
+grep -Fq "The caller's cancellation propagates." <<<"$output"
 
 echo "Verified Ahr.Foundation $version publishes and runs under NativeAOT ($rid) via the packaged sample consumer."
