@@ -9,9 +9,19 @@
      also require fixed-code and Fix All coverage where applicable.
    - Public API changes require tests for documented invariants and composition behavior.
    - Documentation-only changes do not require new unit tests.
-4. Keep tests deterministic, independent, and focused on observable behavior. Use xUnit v3 native
-   assertions and the `Method_Scenario_ExpectedBehavior` naming convention. Do not weaken or delete
-   coverage solely to make a change pass.
+4. Keep tests deterministic, independent, and focused on observable behavior. Do not weaken or
+   delete coverage solely to make a change pass. Tests are Ahr.Assurance scenarios on xUnit v3:
+   - Name test methods `Method_Scenario_ExpectedBehavior`, or `Method_ExpectedBehavior` when there
+     is no distinct scenario. The scenario title is a plain sentence stating the behavior; the
+     Assurance report shows it as the description of what was verified.
+   - Assert only in `Then` and `And` steps, one check per assertion: never pass an assertion, or a
+     helper that asserts, as another assertion's argument, and don't add assertions that only
+     narrow nullability.
+   - Compare against an independent expected value: a literal, an input declared before
+     `Scenario.Define`, or a value built in the step, never a value produced by the code under
+     test.
+   - For a null-argument check, pass `null!` inline. Declare `T name = null!;` before the scenario,
+     named after the parameter, only for an extension receiver or when the type picks an overload.
    This repository's `.editorconfig` raises `AHRF002`, `AHRF009`, and `AHRF011` to warnings, so
    with warnings treated as errors they fail the build here. Packages ship them at Info.
 5. Run format verification, Release build, all tests, and package inspection:

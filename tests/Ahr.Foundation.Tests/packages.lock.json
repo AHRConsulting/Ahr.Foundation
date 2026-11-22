@@ -2,6 +2,18 @@
   "version": 2,
   "dependencies": {
     "net10.0": {
+      "Ahr.Assurance.Xunit.v3": {
+        "type": "Direct",
+        "requested": "[0.1.0, )",
+        "resolved": "0.1.0",
+        "contentHash": "yhOm2EL6/0QA+W7TzqH3EJP/46vDfx7o/vqlXA5C1xuPDUm2M357ro/stY9VCwJ2qc6Fd7GCrI/QCX79Kxsiyw==",
+        "dependencies": {
+          "Ahr.Assurance": "0.1.0",
+          "Ahr.Foundation": "0.2.0",
+          "xunit.v3.assert": "1.0.0",
+          "xunit.v3.extensibility.core": "1.0.0"
+        }
+      },
       "Microsoft.Testing.Extensions.TrxReport": {
         "type": "Direct",
         "requested": "[2.5.2, )",
@@ -25,6 +37,14 @@
         "contentHash": "TdjM2OAx7w/0E88E6PgaigLoTbQaxbSR3HF/8p92plchTjf29jPHW27ylvEOz+Nx8CvPwWKGQlOR1fDv6/Qh5A==",
         "dependencies": {
           "xunit.v3.mtp-v2": "[4.0.2]"
+        }
+      },
+      "Ahr.Assurance": {
+        "type": "Transitive",
+        "resolved": "0.1.0",
+        "contentHash": "nXoZeVJ0V/jKqTiuKRVTM5Sb3ZTa0rrVDzglI/ulcQbH7bd6hs9u6oYXiyMvCy3U3eqUDYPHqQB7FwTiMl5v5w==",
+        "dependencies": {
+          "Ahr.Foundation": "0.2.0"
         }
       },
       "Microsoft.ApplicationInsights": {

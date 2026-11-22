@@ -9,6 +9,7 @@
     <NoWarn>$(NoWarn);IDE0005;CS1591</NoWarn>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Ahr.Assurance.Xunit.v3" />
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" />
   </ItemGroup>

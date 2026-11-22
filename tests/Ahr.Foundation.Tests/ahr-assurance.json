@@ -1,0 +1,8 @@
+{
+  "runs": "artifacts/assurance",
+  "attachments": "attachments",
+  "report": {
+    "output": "report",
+    "excludeContexts": [ "technical" ]
+  }
+}

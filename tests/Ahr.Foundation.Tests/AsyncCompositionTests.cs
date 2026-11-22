@@ -2,19 +2,42 @@ namespace Ahr.Foundation.Tests;
 
 public sealed class AsyncCompositionTests
 {
+    private static readonly BusinessContext _asyncComposition = BusinessContext
+        .Define("async-functional-composition", "Asynchronous functional composition", "Compose Result and Option workflows over asynchronous operations while preserving their outcomes.")
+        .Capability("compose-async-results", "Continue Result pipelines over asynchronous operations")
+        .Capability("compose-async-options", "Continue Option pipelines over asynchronous operations")
+        .Outcome("composed-values-preserved", "Successful values remain available after asynchronous composition")
+        .Outcome("failures-preserved", "Failures and their errors remain available through asynchronous composition")
+        .Outcome("cancellation-propagated", "Cancellation and original exceptions propagate from asynchronous operations")
+        .Rule("callbacks-follow-outcomes", "Callbacks and fallbacks run only for the matching success, failure, or absence outcome")
+        .Build();
+
     [Fact]
-    public async Task BindAsync_Success_ComposesValue()
+    public Task BindAsync_Success_ComposesValue()
     {
-        Result<int> result = await Result<int>.Success(20).BindAsync(value => Task.FromResult(Result<int>.Success(value + 2)));
-        Assert.Equal(22, result.Value);
+        Result<int>? result = null;
+
+        return Scenario.Define("Asynchronous binding composes a successful value", _asyncComposition)
+            .When("A successful value is bound to an asynchronous transformation", async () =>
+            {
+                result = await Result<int>.Success(20).BindAsync(value => Task.FromResult(Result<int>.Success(value + 2)));
+            })
+            .Then("The bound result contains the transformed value", () =>
+                Assert.Equal(22, result?.Value))
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task MapAsync_FaultedCallback_PropagatesOriginalException()
+    public Task MapAsync_FaultedCallback_PropagatesOriginalException()
     {
         var expected = new InvalidOperationException("boom");
-        InvalidOperationException actual = await Assert.ThrowsAsync<InvalidOperationException>(() => Result<int>.Success(1).MapAsync(_ => Task.FromException<int>(expected)));
-        Assert.Same(expected, actual);
+
+        return Scenario.Define("An asynchronous mapper propagates its original exception", _asyncComposition)
+            .WhenThrows<InvalidOperationException>("The mapper task faults", async () =>
+                await Result<int>.Success(1).MapAsync(_ => Task.FromException<int>(expected)))
+            .Then("The original exception instance is propagated", (InvalidOperationException exception) =>
+                Assert.Same(expected, exception))
+            .VerifyAsync();
     }
 
     [Fact]
@@ -22,30 +45,48 @@ public sealed class AsyncCompositionTests
     {
         using var cancellation = new CancellationTokenSource();
         await cancellation.CancelAsync();
-        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Result<int>.Success(1).BindAsync(_ => Task.FromCanceled<Result<int>>(cancellation.Token)));
+
+        _ = await Scenario.Define("Asynchronous binding propagates callback cancellation", _asyncComposition)
+            .WhenThrowsAny<OperationCanceledException>("The bound operation returns a canceled task", async () =>
+                await Result<int>.Success(1).BindAsync(_ => Task.FromCanceled<Result<int>>(cancellation.Token)))
+            .Then("The cancellation is associated with the caller token", (OperationCanceledException exception) =>
+                Assert.Equal(cancellation.Token, exception.CancellationToken))
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task MapAsync_NullReturnedTask_ThrowsWithMapParameter()
+    public Task MapAsync_NullReturnedTask_ThrowsWithMapParameter() =>
+        Scenario.Define("Asynchronous mapping rejects a null returned task", _asyncComposition)
+            .WhenThrows<ArgumentNullException>("The mapper returns no task", async () =>
+                await Result<int>.Success(1).MapAsync<int>(_ => null!))
+            .Then("The refusal identifies the mapper parameter", (ArgumentNullException refusal) =>
+                Assert.Equal("map", refusal.ParamName))
+            .VerifyAsync();
+
+    [Fact]
+    public Task TaskReceiver_NullResultTask_ThrowsWithResultTaskParameter()
     {
-        ArgumentNullException exception = await Assert.ThrowsAsync<ArgumentNullException>(() => Result<int>.Success(1).MapAsync<int>(_ => null!));
-        Assert.Equal("map", exception.ParamName);
+        Task<Result<int>> resultTask = null!;
+
+        return Scenario.Define("Task composition rejects a missing result task", _asyncComposition)
+            .WhenThrows<ArgumentNullException>("A null result task is mapped", async () =>
+                await resultTask.MapAsync(value => Task.FromResult(value + 1)))
+            .Then("The refusal identifies the result task parameter", (ArgumentNullException refusal) =>
+                Assert.Equal("resultTask", refusal.ParamName))
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task TaskReceiver_NullResultTask_ThrowsWithResultTaskParameter()
-    {
-        Task<Result<int>> task = null!;
-        ArgumentNullException exception = await Assert.ThrowsAsync<ArgumentNullException>(() => task.MapAsync(value => Task.FromResult(value + 1)));
-        Assert.Equal("resultTask", exception.ParamName);
-    }
-
-    [Fact]
-    public async Task TaskReceiver_FaultedResultTask_PropagatesOriginalException()
+    public Task TaskReceiver_FaultedResultTask_PropagatesOriginalException()
     {
         var expected = new InvalidOperationException("source");
-        InvalidOperationException actual = await Assert.ThrowsAsync<InvalidOperationException>(() => Task.FromException<Result<int>>(expected).MapAsync(value => Task.FromResult(value + 1)));
-        Assert.Same(expected, actual);
+
+        return Scenario.Define("Task composition propagates the source task exception", _asyncComposition)
+            .WhenThrows<InvalidOperationException>("The source result task faults", async () =>
+                await Task.FromException<Result<int>>(expected).MapAsync(value => Task.FromResult(value + 1)))
+            .Then("The original exception instance is propagated", (InvalidOperationException exception) =>
+                Assert.Same(expected, exception))
+            .VerifyAsync();
     }
 
     [Fact]
@@ -53,295 +94,618 @@ public sealed class AsyncCompositionTests
     {
         using var cancellation = new CancellationTokenSource();
         await cancellation.CancelAsync();
-        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Task.FromCanceled<Option<int>>(cancellation.Token).MapAsync(value => Task.FromResult(value + 1)));
+
+        _ = await Scenario.Define("Task composition propagates a canceled option task", _asyncComposition)
+            .WhenThrowsAny<OperationCanceledException>("The source option task is canceled", async () =>
+                await Task.FromCanceled<Option<int>>(cancellation.Token).MapAsync(value => Task.FromResult(value + 1)))
+            .Then("The cancellation is associated with the caller token", (OperationCanceledException exception) =>
+                Assert.Equal(cancellation.Token, exception.CancellationToken))
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task ValueTaskAsTask_FrameworkAdaptation_ComposesSuccessfully()
+    public Task ValueTaskAsTask_FrameworkAdaptation_ComposesSuccessfully()
     {
         static ValueTask<Result<int>> LoadAsync(int value) => ValueTask.FromResult(Result<int>.Success(value * 2));
-        Result<int> result = await Result<int>.Success(21).BindAsync(value => LoadAsync(value).AsTask());
-        Assert.Equal(42, result.Value);
+        Result<int>? result = null;
+
+        return Scenario.Define("A ValueTask adapts to asynchronous Result binding", _asyncComposition)
+            .When("A successful result binds through the ValueTask adapter", async () =>
+            {
+                result = await Result<int>.Success(21).BindAsync(value => LoadAsync(value).AsTask());
+            })
+            .Then("The adapted operation returns the expected value", () =>
+                Assert.Equal(42, result?.Value))
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task EnsureAsync_FalsePredicate_ReturnsFailure()
+    public Task EnsureAsync_FalsePredicate_ReturnsFailure()
     {
-        Result<int> result = await Result<int>.Success(1).EnsureAsync(_ => Task.FromResult(false), new Error("bad"));
-        Assert.Equal(new Error("bad"), result.Error);
+        Result<int>? result = null;
+
+        return Scenario.Define("Asynchronous validation returns a failure for a false predicate", _asyncComposition)
+            .When("The successful result is checked by an asynchronous false predicate", async () =>
+            {
+                result = await Result<int>.Success(1).EnsureAsync(_ => Task.FromResult(false), new Error("bad"));
+            })
+            .Then("The result contains the supplied validation error", () =>
+                Assert.Equal(new Error("bad"), result?.Error))
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task OptionWhereAsync_None_DoesNotInvokePredicate()
+    public Task OptionWhereAsync_None_DoesNotInvokePredicate()
     {
         var calls = 0;
-        Option<int> result = await Option<int>.None.WhereAsync(_ => { calls++; return Task.FromResult(true); });
-        Assert.Equal(0, calls);
-        Assert.True(result.IsNone);
+        Option<int>? result = null;
+
+        return Scenario.Define("Filtering an absent option skips its predicate", _asyncComposition)
+            .When("An absent option is filtered asynchronously", async () =>
+            {
+                result = await Option<int>.None.WhereAsync(_ =>
+                {
+                    calls++;
+                    return Task.FromResult(true);
+                });
+            })
+            .Then("The predicate is not invoked and the option remains absent", () =>
+            {
+                Assert.Equal(0, calls);
+                Assert.True(result?.IsNone);
+            })
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task MatchAsync_NullFailureDelegate_ThrowsWithOnFailureParameter()
+    public Task MatchAsync_NullFailureDelegate_ThrowsWithOnFailureParameter() =>
+        Scenario.Define("Asynchronous matching rejects a missing failure delegate", _asyncComposition)
+            .WhenThrows<ArgumentNullException>("A successful result is matched without a failure delegate", async () =>
+                await Result<int>.Success(1).MatchAsync(value => Task.FromResult(value), null!))
+            .Then("The refusal identifies the failure-handler parameter", (ArgumentNullException refusal) =>
+                Assert.Equal("onFailure", refusal.ParamName))
+            .VerifyAsync();
+
+    [Fact]
+    public Task DefaultBindAsync_UninitializedResult_ThrowsConsistentException() =>
+        Scenario.Define("Asynchronous binding rejects an uninitialized result", _asyncComposition)
+            .WhenThrows<InvalidOperationException>("An uninitialized result is bound asynchronously", async () =>
+                await default(Result<int>).BindAsync(value => Task.FromResult(Result<int>.Success(value))))
+            .Then("The result explains how it must be initialized", (InvalidOperationException exception) =>
+                Assert.Equal(ResultTestMessages.Uninitialized, exception.Message))
+            .VerifyAsync();
+
+    [Fact]
+    public Task TaskReceiver_Result_BindAsync_Success_Chains()
     {
-        ArgumentNullException exception = await Assert.ThrowsAsync<ArgumentNullException>(() => Result<int>.Success(1).MatchAsync(value => Task.FromResult(value), null!));
-        Assert.Equal("onFailure", exception.ParamName);
+        Result? result = null;
+
+        return Scenario.Define("A payload-free result task binds to another result task", _asyncComposition)
+            .When("The successful task result is bound asynchronously", async () =>
+            {
+                result = await Task.FromResult(Result.Success()).BindAsync(() => Task.FromResult(Result.Success()));
+            })
+            .Then("The composed result succeeds", () =>
+                Assert.True(result?.IsSuccess))
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task DefaultBindAsync_UninitializedResult_ThrowsConsistentException()
+    public Task TaskReceiver_Result_BindAsync_ToResultOfT_Success_Chains()
     {
-        InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() => default(Result<int>).BindAsync(value => Task.FromResult(Result<int>.Success(value))));
-        Assert.Equal("The result is uninitialized. Create it with Success or Failure.", exception.Message);
+        Result<int>? result = null;
+
+        return Scenario.Define("A payload-free result task binds to a value result task", _asyncComposition)
+            .When("The successful task result is bound to a value", async () =>
+            {
+                result = await Task.FromResult(Result.Success()).BindAsync(() => Task.FromResult(Result<int>.Success(42)));
+            })
+            .Then("The composed result succeeds with the bound value", () =>
+            {
+                Assert.True(result?.IsSuccess);
+                Assert.Equal(42, result?.Value);
+            })
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task TaskReceiver_Result_BindAsync_Success_Chains()
-    {
-        Task<Result> task = Task.FromResult(Result.Success());
-        Result result = await task.BindAsync(() => Task.FromResult(Result.Success()));
-        Assert.True(result.IsSuccess);
-    }
-
-    [Fact]
-    public async Task TaskReceiver_Result_BindAsync_ToResultOfT_Success_Chains()
-    {
-        Task<Result> task = Task.FromResult(Result.Success());
-        Result<int> result = await task.BindAsync(() => Task.FromResult(Result<int>.Success(42)));
-        Assert.True(result.IsSuccess);
-        Assert.Equal(42, result.Value);
-    }
-
-    [Fact]
-    public async Task TaskReceiver_Result_TapAsync_Success_Executes()
+    public Task TaskReceiver_Result_TapAsync_Success_Executes()
     {
         var tapped = false;
-        Task<Result> task = Task.FromResult(Result.Success());
-        Result result = await task.TapAsync(() => { tapped = true; return Task.CompletedTask; });
-        Assert.True(tapped);
-        Assert.True(result.IsSuccess);
+        Result? result = null;
+
+        return Scenario.Define("Tapping a successful result task executes its callback", _asyncComposition)
+            .When("The successful task result is tapped", async () =>
+            {
+                result = await Task.FromResult(Result.Success()).TapAsync(() =>
+                {
+                    tapped = true;
+                    return Task.CompletedTask;
+                });
+            })
+            .Then("The callback runs and the result remains successful", () =>
+            {
+                Assert.True(tapped);
+                Assert.True(result?.IsSuccess);
+            })
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task TaskReceiver_Result_TapErrorAsync_Failure_Executes()
+    public Task TaskReceiver_Result_TapErrorAsync_Failure_Executes()
     {
         var tapped = false;
-        Task<Result> task = Task.FromResult(Result.Failure(new Error("err")));
-        Result result = await task.TapErrorAsync(e => { tapped = true; return Task.CompletedTask; });
-        Assert.True(tapped);
-        Assert.True(result.IsFailure);
+        Result? result = null;
+
+        return Scenario.Define("Tapping a failed result task executes its error callback", _asyncComposition)
+            .When("The failed task result is tapped for its error", async () =>
+            {
+                result = await Task.FromResult(Result.Failure(new Error("err"))).TapErrorAsync(_ =>
+                {
+                    tapped = true;
+                    return Task.CompletedTask;
+                });
+            })
+            .Then("The callback runs and the result remains failed", () =>
+            {
+                Assert.True(tapped);
+                Assert.True(result?.IsFailure);
+            })
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task TaskReceiver_Result_OrElseAsync_Success_ShortCircuits()
+    public Task TaskReceiver_Result_OrElseAsync_Success_ShortCircuits()
     {
         var called = false;
-        Task<Result> task = Task.FromResult(Result.Success());
-        Result result = await task.OrElseAsync(() => { called = true; return Task.FromResult(Result.Success()); });
-        Assert.False(called);
-        Assert.True(result.IsSuccess);
+        Result? result = null;
+
+        return Scenario.Define("A successful result task skips its asynchronous fallback", _asyncComposition)
+            .When("The successful task result is given a fallback", async () =>
+            {
+                result = await Task.FromResult(Result.Success()).OrElseAsync(() =>
+                {
+                    called = true;
+                    return Task.FromResult(Result.Success());
+                });
+            })
+            .Then("The fallback is skipped and the result succeeds", () =>
+            {
+                Assert.False(called);
+                Assert.True(result?.IsSuccess);
+            })
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task TaskReceiver_Result_OrElseAsync_Failure_InvokesFallback()
+    public Task TaskReceiver_Result_OrElseAsync_Failure_InvokesFallback()
     {
-        Task<Result> task = Task.FromResult(Result.Failure(new Error("err")));
-        Result result = await task.OrElseAsync(() => Task.FromResult(Result.Success()));
-        Assert.True(result.IsSuccess);
+        Result? result = null;
+
+        return Scenario.Define("A failed result task invokes its asynchronous fallback", _asyncComposition)
+            .When("The failed task result is given a successful fallback", async () =>
+            {
+                result = await Task.FromResult(Result.Failure(new Error("err"))).OrElseAsync(() => Task.FromResult(Result.Success()));
+            })
+            .Then("The fallback result succeeds", () =>
+                Assert.True(result?.IsSuccess))
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task TaskReceiver_ResultOfT_BindAsync_ToResult_Success_Chains()
+    public Task TaskReceiver_ResultOfT_BindAsync_ToResult_Success_Chains()
     {
-        Task<Result<int>> task = Task.FromResult(Result<int>.Success(42));
-        Result result = await task.BindAsync(v => Task.FromResult(Result.Success()));
-        Assert.True(result.IsSuccess);
+        Result? result = null;
+
+        return Scenario.Define("A value result task binds to a payload-free result task", _asyncComposition)
+            .When("The successful task result is bound to a payload-free result", async () =>
+            {
+                result = await Task.FromResult(Result<int>.Success(42)).BindAsync(_ => Task.FromResult(Result.Success()));
+            })
+            .Then("The composed result succeeds", () =>
+                Assert.True(result?.IsSuccess))
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task TaskReceiver_ResultOfT_BindAsync_ToResultOfTOut_Success_Chains()
+    public Task TaskReceiver_ResultOfT_BindAsync_ToResultOfTOut_Success_Chains()
     {
-        Task<Result<int>> task = Task.FromResult(Result<int>.Success(42));
-        Result<string> result = await task.BindAsync(v => Task.FromResult(Result<string>.Success($"val: {v}")));
-        Assert.True(result.IsSuccess);
-        Assert.Equal("val: 42", result.Value);
+        Result<string>? result = null;
+
+        return Scenario.Define("A value result task binds to a different value type", _asyncComposition)
+            .When("The successful task result is bound to a string result", async () =>
+            {
+                result = await Task.FromResult(Result<int>.Success(42)).BindAsync(value => Task.FromResult(Result<string>.Success($"val: {value}")));
+            })
+            .Then("The composed string result succeeds with the mapped text", () =>
+            {
+                Assert.True(result?.IsSuccess);
+                Assert.Equal("val: 42", result?.Value);
+            })
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task TaskReceiver_ResultOfT_MapErrorAsync_TransformsError()
+    public Task TaskReceiver_ResultOfT_MapErrorAsync_TransformsError()
     {
-        Task<Result<int>> task = Task.FromResult(Result<int>.Failure(new Error("original")));
-        Result<int> result = await task.MapErrorAsync(e => Task.FromResult(new Error($"mapped: {e.Message}")));
-        Assert.True(result.IsFailure);
-        Assert.Equal("mapped: original", result.Error.Message);
+        Result<int>? result = null;
+
+        return Scenario.Define("An asynchronous error mapper transforms a task result error", _asyncComposition)
+            .When("The failed result task's error is mapped asynchronously", async () =>
+            {
+                result = await Task.FromResult(Result<int>.Failure(new Error("original")))
+                    .MapErrorAsync(error => Task.FromResult(new Error($"mapped: {error.Message}")));
+            })
+            .Then("The mapped error remains a failure with its transformed message", () =>
+            {
+                Assert.True(result?.IsFailure);
+                Assert.Equal("mapped: original", result?.Error.Message);
+            })
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task TaskReceiver_ResultOfT_TapAsync_Executes()
+    public Task TaskReceiver_ResultOfT_TapAsync_Executes()
     {
         var observed = 0;
-        Task<Result<int>> task = Task.FromResult(Result<int>.Success(42));
-        Result<int> result = await task.TapAsync(v => { observed = v; return Task.CompletedTask; });
-        Assert.Equal(42, observed);
-        Assert.True(result.IsSuccess);
+        Result<int>? result = null;
+
+        return Scenario.Define("Tapping a successful value result task observes its value", _asyncComposition)
+            .When("The successful task result is tapped", async () =>
+            {
+                result = await Task.FromResult(Result<int>.Success(42)).TapAsync(value =>
+                {
+                    observed = value;
+                    return Task.CompletedTask;
+                });
+            })
+            .Then("The callback observes the value and the result remains successful", () =>
+            {
+                Assert.Equal(42, observed);
+                Assert.True(result?.IsSuccess);
+            })
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task TaskReceiver_ResultOfT_TapErrorAsync_Executes()
+    public Task TaskReceiver_ResultOfT_TapErrorAsync_Executes()
     {
         var observed = "";
-        Task<Result<int>> task = Task.FromResult(Result<int>.Failure(new Error("bad")));
-        Result<int> result = await task.TapErrorAsync(e => { observed = e.Message; return Task.CompletedTask; });
-        Assert.Equal("bad", observed);
-        Assert.True(result.IsFailure);
+        Result<int>? result = null;
+
+        return Scenario.Define("Tapping a failed value result task observes its error", _asyncComposition)
+            .When("The failed task result is tapped for its error", async () =>
+            {
+                result = await Task.FromResult(Result<int>.Failure(new Error("bad"))).TapErrorAsync(error =>
+                {
+                    observed = error.Message;
+                    return Task.CompletedTask;
+                });
+            })
+            .Then("The callback observes the error and the result remains failed", () =>
+            {
+                Assert.Equal("bad", observed);
+                Assert.True(result?.IsFailure);
+            })
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task TaskReceiver_ResultOfT_EnsureAsync_PredicateFalse_ReturnsFailure()
+    public Task TaskReceiver_ResultOfT_EnsureAsync_PredicateFalse_ReturnsFailure()
     {
-        Task<Result<int>> task = Task.FromResult(Result<int>.Success(42));
-        Result<int> result = await task.EnsureAsync(v => Task.FromResult(v < 10), new Error("too large"));
-        Assert.True(result.IsFailure);
-        Assert.Equal("too large", result.Error.Message);
+        Result<int>? result = null;
+
+        return Scenario.Define("Asynchronous task validation rejects a value above the limit", _asyncComposition)
+            .When("The successful task result is checked asynchronously", async () =>
+            {
+                result = await Task.FromResult(Result<int>.Success(42)).EnsureAsync(value => Task.FromResult(value < 10), new Error("too large"));
+            })
+            .Then("The failed result contains the validation message", () =>
+            {
+                Assert.True(result?.IsFailure);
+                Assert.Equal("too large", result?.Error.Message);
+            })
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task TaskReceiver_ResultOfT_OrElseAsync_Success_ShortCircuits()
+    public Task TaskReceiver_ResultOfT_OrElseAsync_Success_ShortCircuits()
     {
         var called = false;
-        Task<Result<int>> task = Task.FromResult(Result<int>.Success(42));
-        Result<int> result = await task.OrElseAsync(() => { called = true; return Task.FromResult(Result<int>.Success(0)); });
-        Assert.False(called);
-        Assert.Equal(42, result.Value);
+        Result<int>? result = null;
+
+        return Scenario.Define("A successful value result task skips its fallback", _asyncComposition)
+            .When("The successful task result is given an asynchronous fallback", async () =>
+            {
+                result = await Task.FromResult(Result<int>.Success(42)).OrElseAsync(() =>
+                {
+                    called = true;
+                    return Task.FromResult(Result<int>.Success(0));
+                });
+            })
+            .Then("The fallback is skipped and the original value remains", () =>
+            {
+                Assert.False(called);
+                Assert.Equal(42, result?.Value);
+            })
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task TaskReceiver_ResultOfT_OrElseAsync_Failure_InvokesFallback()
+    public Task TaskReceiver_ResultOfT_OrElseAsync_Failure_InvokesFallback()
     {
-        Task<Result<int>> task = Task.FromResult(Result<int>.Failure(new Error("bad")));
-        Result<int> result = await task.OrElseAsync(() => Task.FromResult(Result<int>.Success(99)));
-        Assert.True(result.IsSuccess);
-        Assert.Equal(99, result.Value);
+        Result<int>? result = null;
+
+        return Scenario.Define("A failed value result task invokes its fallback", _asyncComposition)
+            .When("The failed task result is given a successful fallback", async () =>
+            {
+                result = await Task.FromResult(Result<int>.Failure(new Error("bad"))).OrElseAsync(() => Task.FromResult(Result<int>.Success(99)));
+            })
+            .Then("The fallback result succeeds with its value", () =>
+            {
+                Assert.True(result?.IsSuccess);
+                Assert.Equal(99, result?.Value);
+            })
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task TaskReceiver_ResultOfTAndTError_BindAsync_Chains()
+    public Task TaskReceiver_ResultOfTAndTError_BindAsync_Chains()
     {
-        Task<Result<int, string>> task = Task.FromResult(Result<int, string>.Success(42));
-        Result<string, string> result = await task.BindAsync(v => Task.FromResult(Result<string, string>.Success($"ok: {v}")));
-        Assert.True(result.IsSuccess);
-        Assert.Equal("ok: 42", result.Value);
+        Result<string, string>? result = null;
+
+        return Scenario.Define("A custom-error result task binds to a new value", _asyncComposition)
+            .When("The successful task result is bound to a transformed value", async () =>
+            {
+                result = await Task.FromResult(Result<int, string>.Success(42))
+                    .BindAsync(value => Task.FromResult(Result<string, string>.Success($"ok: {value}")));
+            })
+            .Then("The composed result succeeds with the transformed text", () =>
+            {
+                Assert.True(result?.IsSuccess);
+                Assert.Equal("ok: 42", result?.Value);
+            })
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task TaskReceiver_ResultOfTAndTError_MapAsync_TransformsValue()
+    public Task TaskReceiver_ResultOfTAndTError_MapAsync_TransformsValue()
     {
-        Task<Result<int, string>> task = Task.FromResult(Result<int, string>.Success(42));
-        Result<string, string> result = await task.MapAsync(v => Task.FromResult($"ok: {v}"));
-        Assert.True(result.IsSuccess);
-        Assert.Equal("ok: 42", result.Value);
+        Result<string, string>? result = null;
+
+        return Scenario.Define("Asynchronous mapping transforms a custom-error result value", _asyncComposition)
+            .When("The successful task result is mapped to text", async () =>
+            {
+                result = await Task.FromResult(Result<int, string>.Success(42)).MapAsync(value => Task.FromResult($"ok: {value}"));
+            })
+            .Then("The mapped custom-error result succeeds with the expected text", () =>
+            {
+                Assert.True(result?.IsSuccess);
+                Assert.Equal("ok: 42", result?.Value);
+            })
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task TaskReceiver_ResultOfTAndTError_MapErrorAsync_TransformsError()
+    public Task TaskReceiver_ResultOfTAndTError_MapErrorAsync_TransformsError()
     {
-        Task<Result<int, string>> task = Task.FromResult(Result<int, string>.Failure("original"));
-        Result<int, int> result = await task.MapErrorAsync(e => Task.FromResult(e.Length));
-        Assert.True(result.IsFailure);
-        Assert.Equal(8, result.Error);
+        Result<int, int>? result = null;
+
+        return Scenario.Define("Asynchronous error mapping transforms a custom error", _asyncComposition)
+            .When("The failed custom-error result task's error is mapped to its length", async () =>
+            {
+                result = await Task.FromResult(Result<int, string>.Failure("original")).MapErrorAsync(error => Task.FromResult(error.Length));
+            })
+            .Then("The mapped result remains failed with the transformed error", () =>
+            {
+                Assert.True(result?.IsFailure);
+                Assert.Equal(8, result?.Error);
+            })
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task TaskReceiver_ResultOfTAndTError_TapAsync_Executes()
+    public Task TaskReceiver_ResultOfTAndTError_TapAsync_Executes()
     {
         var observed = 0;
-        Task<Result<int, string>> task = Task.FromResult(Result<int, string>.Success(42));
-        Result<int, string> result = await task.TapAsync(v => { observed = v; return Task.CompletedTask; });
-        Assert.Equal(42, observed);
-        Assert.True(result.IsSuccess);
+        Result<int, string>? result = null;
+
+        return Scenario.Define("Tapping a successful custom-error result task observes its value", _asyncComposition)
+            .When("The successful task result is tapped", async () =>
+            {
+                result = await Task.FromResult(Result<int, string>.Success(42)).TapAsync(value =>
+                {
+                    observed = value;
+                    return Task.CompletedTask;
+                });
+            })
+            .Then("The callback observes the value and the result remains successful", () =>
+            {
+                Assert.Equal(42, observed);
+                Assert.True(result?.IsSuccess);
+            })
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task TaskReceiver_ResultOfTAndTError_TapErrorAsync_Executes()
+    public Task TaskReceiver_ResultOfTAndTError_TapErrorAsync_Executes()
     {
         var observed = "";
-        Task<Result<int, string>> task = Task.FromResult(Result<int, string>.Failure("err"));
-        Result<int, string> result = await task.TapErrorAsync(e => { observed = e; return Task.CompletedTask; });
-        Assert.Equal("err", observed);
-        Assert.True(result.IsFailure);
+        Result<int, string>? result = null;
+
+        return Scenario.Define("Tapping a failed custom-error result task observes its error", _asyncComposition)
+            .When("The failed task result is tapped for its error", async () =>
+            {
+                result = await Task.FromResult(Result<int, string>.Failure("err")).TapErrorAsync(error =>
+                {
+                    observed = error;
+                    return Task.CompletedTask;
+                });
+            })
+            .Then("The callback observes the error and the result remains failed", () =>
+            {
+                Assert.Equal("err", observed);
+                Assert.True(result?.IsFailure);
+            })
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task TaskReceiver_ResultOfTAndTError_EnsureAsync_PredicateFalse_ReturnsFailure()
+    public Task TaskReceiver_ResultOfTAndTError_EnsureAsync_PredicateFalse_ReturnsFailure()
     {
-        Task<Result<int, string>> task = Task.FromResult(Result<int, string>.Success(42));
-        Result<int, string> result = await task.EnsureAsync(v => Task.FromResult(v < 10), "too large");
-        Assert.True(result.IsFailure);
-        Assert.Equal("too large", result.Error);
+        Result<int, string>? result = null;
+
+        return Scenario.Define("Asynchronous task validation rejects a custom-error value above the limit", _asyncComposition)
+            .When("The successful custom-error task result is checked asynchronously", async () =>
+            {
+                result = await Task.FromResult(Result<int, string>.Success(42)).EnsureAsync(value => Task.FromResult(value < 10), "too large");
+            })
+            .Then("The failed result contains the custom validation error", () =>
+            {
+                Assert.True(result?.IsFailure);
+                Assert.Equal("too large", result?.Error);
+            })
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task TaskReceiver_ResultOfTAndTError_OrElseAsync_Success_ShortCircuits()
+    public Task TaskReceiver_ResultOfTAndTError_OrElseAsync_Success_ShortCircuits()
     {
         var called = false;
-        Task<Result<int, string>> task = Task.FromResult(Result<int, string>.Success(42));
-        Result<int, string> result = await task.OrElseAsync(() => { called = true; return Task.FromResult(Result<int, string>.Success(0)); });
-        Assert.False(called);
-        Assert.Equal(42, result.Value);
+        Result<int, string>? result = null;
+
+        return Scenario.Define("A successful custom-error result task skips its fallback", _asyncComposition)
+            .When("The successful task result is given an asynchronous fallback", async () =>
+            {
+                result = await Task.FromResult(Result<int, string>.Success(42)).OrElseAsync(() =>
+                {
+                    called = true;
+                    return Task.FromResult(Result<int, string>.Success(0));
+                });
+            })
+            .Then("The fallback is skipped and the original value remains", () =>
+            {
+                Assert.False(called);
+                Assert.Equal(42, result?.Value);
+            })
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task TaskReceiver_ResultOfTAndTError_OrElseAsync_Failure_InvokesFallback()
+    public Task TaskReceiver_ResultOfTAndTError_OrElseAsync_Failure_InvokesFallback()
     {
-        Task<Result<int, string>> task = Task.FromResult(Result<int, string>.Failure("bad"));
-        Result<int, string> result = await task.OrElseAsync(() => Task.FromResult(Result<int, string>.Success(99)));
-        Assert.True(result.IsSuccess);
-        Assert.Equal(99, result.Value);
+        Result<int, string>? result = null;
+
+        return Scenario.Define("A failed custom-error result task invokes its fallback", _asyncComposition)
+            .When("The failed task result is given a successful fallback", async () =>
+            {
+                result = await Task.FromResult(Result<int, string>.Failure("bad")).OrElseAsync(() => Task.FromResult(Result<int, string>.Success(99)));
+            })
+            .Then("The fallback result succeeds with its value", () =>
+            {
+                Assert.True(result?.IsSuccess);
+                Assert.Equal(99, result?.Value);
+            })
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task TaskReceiver_Option_BindAsync_Some_Chains()
+    public Task TaskReceiver_Option_BindAsync_Some_Chains()
     {
-        Task<Option<int>> task = Task.FromResult(Option<int>.Some(42));
-        Option<string> result = await task.BindAsync(v => Task.FromResult(Option<string>.Some($"val: {v}")));
-        Assert.True(result.IsSome);
-        Assert.Equal("val: 42", result.Value);
+        Option<string>? result = null;
+
+        return Scenario.Define("A present option task binds to a transformed option", _asyncComposition)
+            .When("The present option is bound asynchronously", async () =>
+            {
+                result = await Task.FromResult(Option<int>.Some(42)).BindAsync(value => Task.FromResult(Option<string>.Some($"val: {value}")));
+            })
+            .Then("The composed option contains the transformed value", () =>
+            {
+                Assert.True(result?.IsSome);
+                Assert.Equal("val: 42", result?.Value);
+            })
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task TaskReceiver_Option_WhereAsync_PredicateTrue_KeepsSome()
+    public Task TaskReceiver_Option_WhereAsync_PredicateTrue_KeepsSome()
     {
-        Task<Option<int>> task = Task.FromResult(Option<int>.Some(42));
-        Option<int> result = await task.WhereAsync(v => Task.FromResult(v > 10));
-        Assert.True(result.IsSome);
-        Assert.Equal(42, result.Value);
+        Option<int>? result = null;
+
+        return Scenario.Define("Asynchronous filtering keeps a present option that matches", _asyncComposition)
+            .When("The present option is checked by an asynchronous true predicate", async () =>
+            {
+                result = await Task.FromResult(Option<int>.Some(42)).WhereAsync(value => Task.FromResult(value > 10));
+            })
+            .Then("The option remains present with its original value", () =>
+            {
+                Assert.True(result?.IsSome);
+                Assert.Equal(42, result?.Value);
+            })
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task TaskReceiver_Option_TapAsync_Some_Executes()
+    public Task TaskReceiver_Option_TapAsync_Some_Executes()
     {
         var observed = 0;
-        Task<Option<int>> task = Task.FromResult(Option<int>.Some(42));
-        Option<int> result = await task.TapAsync(v => { observed = v; return Task.CompletedTask; });
-        Assert.Equal(42, observed);
-        Assert.True(result.IsSome);
+        Option<int>? result = null;
+
+        return Scenario.Define("Tapping a present option task observes its value", _asyncComposition)
+            .When("The present option task is tapped", async () =>
+            {
+                result = await Task.FromResult(Option<int>.Some(42)).TapAsync(value =>
+                {
+                    observed = value;
+                    return Task.CompletedTask;
+                });
+            })
+            .Then("The callback observes the value and the option remains present", () =>
+            {
+                Assert.Equal(42, observed);
+                Assert.True(result?.IsSome);
+            })
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task TaskReceiver_Option_OrElseAsync_Some_ShortCircuits()
+    public Task TaskReceiver_Option_OrElseAsync_Some_ShortCircuits()
     {
         var called = false;
-        Task<Option<int>> task = Task.FromResult(Option<int>.Some(42));
-        Option<int> result = await task.OrElseAsync(() => { called = true; return Task.FromResult(Option<int>.Some(0)); });
-        Assert.False(called);
-        Assert.Equal(42, result.Value);
+        Option<int>? result = null;
+
+        return Scenario.Define("A present option task skips its fallback", _asyncComposition)
+            .When("The present option task is given an asynchronous fallback", async () =>
+            {
+                result = await Task.FromResult(Option<int>.Some(42)).OrElseAsync(() =>
+                {
+                    called = true;
+                    return Task.FromResult(Option<int>.Some(0));
+                });
+            })
+            .Then("The fallback is skipped and the original value remains", () =>
+            {
+                Assert.False(called);
+                Assert.Equal(42, result?.Value);
+            })
+            .VerifyAsync();
     }
 
     [Fact]
-    public async Task TaskReceiver_Option_OrElseAsync_None_InvokesFallback()
+    public Task TaskReceiver_Option_OrElseAsync_None_InvokesFallback()
     {
-        Task<Option<int>> task = Task.FromResult(Option<int>.None);
-        Option<int> result = await task.OrElseAsync(() => Task.FromResult(Option<int>.Some(99)));
-        Assert.True(result.IsSome);
-        Assert.Equal(99, result.Value);
+        Option<int>? result = null;
+
+        return Scenario.Define("An absent option task invokes its fallback", _asyncComposition)
+            .When("The absent option task is given a present fallback", async () =>
+            {
+                result = await Task.FromResult(Option<int>.None).OrElseAsync(() => Task.FromResult(Option<int>.Some(99)));
+            })
+            .Then("The fallback option is present with its value", () =>
+            {
+                Assert.True(result?.IsSome);
+                Assert.Equal(99, result?.Value);
+            })
+            .VerifyAsync();
     }
 }
