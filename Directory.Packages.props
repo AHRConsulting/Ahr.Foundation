@@ -4,6 +4,7 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup>
+    <PackageVersion Include="Ahr.Assurance.Xunit.v3" Version="0.1.0" />
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.9.0" />

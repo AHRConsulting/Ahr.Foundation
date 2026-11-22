@@ -1,13 +1,18 @@
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
-using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Ahr.Foundation.Analyzers.Tests;
 
 public sealed class DefaultResultConstructionCodeFixProviderTests
 {
+    private static readonly BusinessContext _resultInitialization = BusinessContext
+        .Define("explicit-result-initialization-code-fix", "Explicit Result initialization fixes", "Offer a safe success factory when a Result is default-constructed.")
+        .Capability("replace-invalid-default-result", "Replace a default Result with its explicit success factory")
+        .Outcome("default-result-fixed-with-success", "The code fix creates a valid successful Result")
+        .Rule("use-explicit-result-factories", "Create Results with their explicit success or failure factories")
+        .Build();
+
     private const string ResultDefinitions = """
         namespace Ahr.Foundation
         {
@@ -20,7 +25,7 @@ public sealed class DefaultResultConstructionCodeFixProviderTests
         """;
 
     [Fact]
-    public async Task CodeFix_ResultDefault_ReplacesWithResultSuccess()
+    public Task CodeFix_ResultDefault_ReplacesWithResultSuccess()
     {
         const string initialSource = """
             namespace Ahr.Foundation;
@@ -30,34 +35,26 @@ public sealed class DefaultResultConstructionCodeFixProviderTests
             }
             """;
 
-        AdhocWorkspace workspace = new();
-        Project project = AnalyzerTestHarness.CreateProject(workspace, ResultDefinitions, initialSource);
-        Document testDoc = project.Documents.Single(document => document.Name == "TestClass.cs");
-
-        Compilation compilation = (await testDoc.Project.GetCompilationAsync(TestContext.Current.CancellationToken))!;
-        CompilationWithAnalyzers compilationWithAnalyzers = compilation.WithAnalyzers([new DefaultResultConstructionAnalyzer()]);
-        ImmutableArray<Diagnostic> diagnostics = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync(TestContext.Current.CancellationToken);
-
-        Diagnostic diagnostic = Assert.Single(diagnostics, d => d.Location.SourceTree?.FilePath == "TestClass.cs");
-
-        List<CodeAction> registeredActions = [];
-        CodeFixContext context = new(
-            testDoc,
-            diagnostic,
-            (action, _) => registeredActions.Add(action),
-            TestContext.Current.CancellationToken);
-
-        DefaultResultConstructionCodeFixProvider provider = new();
-        await provider.RegisterCodeFixesAsync(context);
-
-        CodeAction action = Assert.Single(registeredActions);
-        Assert.Equal("Use 'Result.Success()'", action.Title);
-
-        ImmutableArray<CodeActionOperation> operations = await action.GetOperationsAsync(TestContext.Current.CancellationToken);
-        ApplyChangesOperation applyOperation = Assert.IsType<ApplyChangesOperation>(Assert.Single(operations));
-        Document newDoc = applyOperation.ChangedSolution.GetDocument(testDoc.Id)!;
-        var newText = (await newDoc.GetTextAsync(TestContext.Current.CancellationToken)).ToString();
-
-        Assert.Contains("Result.Success()", newText);
+        return Scenario.Define("The default Result code fix uses an explicit success factory", _resultInitialization)
+            .When("The analyzer and code fix process a default Result", _ =>
+                ApplyFixAsync(initialSource))
+            .Then("AHRF001 is reported for the default Result", (CodeFixOutcome outcome) =>
+                AnalyzerTestHarness.ReportsSingle(outcome.Diagnostics, DefaultResultConstructionAnalyzer.DiagnosticId))
+            .And("A single fix titled Use 'Result.Success()' is offered", (CodeFixOutcome outcome) =>
+                Assert.Equal(["Use 'Result.Success()'"], outcome.ActionTitles))
+            .And("The fix is a single change to the solution", (CodeFixOutcome outcome) =>
+                Assert.Equal([nameof(ApplyChangesOperation)], outcome.Operations))
+            .And("The rewritten code uses Result.Success()", (CodeFixOutcome outcome) =>
+                Assert.Contains("Result.Success()", outcome.FixedSource, StringComparison.Ordinal))
+            .And("No AHRF001 diagnostic remains after the fix", (CodeFixOutcome outcome) =>
+                Assert.Empty(outcome.DiagnosticsAfterFix))
+            .VerifyAsync();
     }
+
+    private static Task<CodeFixOutcome> ApplyFixAsync(string initialSource) =>
+        AnalyzerTestHarness.RunCodeFixAsync(
+            AnalyzerTestHarness.CreateProject(new AdhocWorkspace(), ResultDefinitions, initialSource),
+            new DefaultResultConstructionAnalyzer(),
+            new DefaultResultConstructionCodeFixProvider(),
+            TestContext.Current.CancellationToken);
 }

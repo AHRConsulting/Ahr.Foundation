@@ -11,11 +11,11 @@ dotnet add package Ahr.Foundation --version 0.2.0
 ## Railway-Oriented Programming (ROP)
 
 Operations compose as two tracks: **Success** and **Failure**. `Bind` continues on the success
-track and switches to the failure track at the first error, skipping every later step.
+track and switches to the failure track at the first error, skipping every later step. The types are in
+the `Ahr.Foundation` namespace.
 
+<!-- snippet: rop-register -->
 ```csharp
-using Ahr.Foundation;
-
 public Result<User> Register(string email, int age)
 {
     return ValidateEmail(email)
@@ -36,6 +36,7 @@ Start with the type that matches the meaning of the operation:
 Use `Option<T>` for an optional lookup, such as finding the first matching item. Use `Result<T>`
 when the operation must explain why it could not produce a value.
 
+<!-- snippet: core-types -->
 ```csharp
 Option<string> adminName = users.FirstOrNone(user => user.IsAdmin)
     .Map(user => user.Name);
@@ -59,6 +60,7 @@ Result<User> user = repository.Find(userId)
 `Tap` keeps the value and `Bind` replaces it. On every result and option type, a `Tap` function that
 returns the same family stops the pipeline when it fails or returns `None`:
 
+<!-- snippet: tap -->
 ```csharp
 Result<Order> saved = ValidateOrder(request)
     .Tap(order => repository.Save(order)) // a failure stops the pipeline
@@ -78,6 +80,7 @@ returns a custom error type turns `Result<T>` into `Result<T, TError>`. Payload-
 with `ToOption` and `ToResult`, and use `Result<T>.ToResult()` to drop a value and keep only success or
 failure:
 
+<!-- snippet: map-error -->
 ```csharp
 Result<User, ApiError> user = await LoadUserAsync(id).MapErrorAsync(error => ApiError.From(error));
 Result restored = await store.LoadAsync(key).TapSomeAsync(page.Restore).ToResultAsync();
@@ -88,6 +91,7 @@ Result restored = await store.LoadAsync(key).TapSomeAsync(page.Restore).ToResult
 `Select` and `SelectMany` are available on `Result<T>`, `Result<T, TError>`, and `Option<T>`, so
 query syntax composes the same pipeline with the same short-circuiting:
 
+<!-- snippet: linq -->
 ```csharp
 Result<decimal> total =
     from user in FindUser(userId)
@@ -107,12 +111,14 @@ Query syntax suits pipelines where later steps need values bound earlier. For sh
 
 `Option<T>` provides explicit handling of optional presence:
 
+<!-- snippet: option-map -->
 ```csharp
 Option<string> item = users.FirstOrNone(u => u.IsAdmin).Map(u => u.Name);
 ```
 
 Sequence and dictionary helpers return options instead of defaults or exceptions:
 
+<!-- snippet: option-helpers -->
 ```csharp
 Option<User> admin = users.FirstOrNone(u => u.IsAdmin);
 Option<User> owner = members.SingleOrNone(m => m.IsOwner); // throws if more than one matches
@@ -134,6 +140,7 @@ A database or remote lookup can fail or find nothing, and those are different ou
 `Result<Option<T>>` and `Result<Option<T>, TError>` keep them apart. `Match` and `MatchAsync` handle
 all three cases without nesting:
 
+<!-- snippet: three-way-match -->
 ```csharp
 return await repository.FindAsync(id).MatchAsync(
     onSome: user => Ok(user),
@@ -144,6 +151,7 @@ return await repository.FindAsync(id).MatchAsync(
 To run code instead of producing a value, pass actions. All three handlers are required, and the original
 result is returned:
 
+<!-- snippet: match-actions -->
 ```csharp
 picked.Match(
     onSome: order => Select(order),
@@ -154,6 +162,7 @@ picked.Match(
 `EnsureSome` and `EnsureSomeAsync` treat a missing value as a failure and continue the pipeline. An
 existing failure is kept:
 
+<!-- snippet: ensure-some -->
 ```csharp
 Result<string> name = await repository.FindAsync(id)
     .EnsureSomeAsync(new Error("User not found."))
@@ -163,6 +172,7 @@ Result<string> name = await repository.FindAsync(id)
 `SomeOr` and `SomeOrAsync` use a fallback value instead, and `BindNone` and `BindNoneAsync` try another
 lookup when nothing was found. A failure is kept by both:
 
+<!-- snippet: some-or -->
 ```csharp
 Result<Settings> settings = await store.FindAsync(userId).SomeOrAsync(Settings.Default);
 
@@ -173,11 +183,13 @@ Result<Option<User>> user = await cache.FindAsync(id).BindNoneAsync(() => databa
 value or a failure passes through. `TapSome` keeps the value and, like `Tap`, stops the pipeline when its
 step returns a failure. `BindSome` continues with another lookup of the same shape:
 
+<!-- snippet: tap-some -->
 ```csharp
 Result<Option<PageState>> state = await store.LoadAsync(key)
-    .TapSomeAsync(saved => Result.Try(() => page.RestoreState(saved)));
+    .TapSomeAsync(saved => Result.Try(() => page.Restore(saved)));
 ```
 
+<!-- snippet: bind-some -->
 ```csharp
 string text = await customers.FindAsync(id)
     .BindSomeAsync(customer => orders.FindFirstAsync(customer.Id))
@@ -200,6 +212,7 @@ string text = await customers.FindAsync(id)
 `Traverse` runs a step that can fail on each item, in order. It returns all the values, or the first
 failure, and does not run the items after it. `Sequence` does the same for results that already exist:
 
+<!-- snippet: traverse -->
 ```csharp
 Result<IReadOnlyList<Order>> orders = ids.Traverse(id => repository.Load(id));
 
@@ -209,6 +222,7 @@ Result<IReadOnlyList<int>> numbers = inputs.Select(Parse).Sequence();
 `Partition` runs every item and returns the values and the errors separately, for batch work where
 one failure should not stop the rest. On `Result`, which has no value, it returns the errors:
 
+<!-- snippet: partition -->
 ```csharp
 var (written, errors) = await drafts.PartitionAsync(draft => WriteAsync(draft));
 
@@ -238,6 +252,7 @@ The main combinators have asynchronous equivalents. `TaskCompositionExtensions` 
 `Task<Result<T>>`, `Task<Result<T, TError>>`, or `Task<Option<T>>` continue as a fluent pipeline
 without awaiting each intermediate operation manually.
 
+<!-- snippet: async -->
 ```csharp
 Result<OrderConfirmation> confirmation = await ValidateOrder(request)
     .BindAsync(order => inventory.ReserveAsync(order))
@@ -254,6 +269,7 @@ Each of these task extensions also accepts a synchronous delegate, so synchronou
 asynchronous pipeline without an intermediate `await`. `MatchAsync` ends the pipeline with either
 synchronous or asynchronous branches:
 
+<!-- snippet: async-sync-steps -->
 ```csharp
 string message = await ValidateOrder(request)
     .BindAsync(order => inventory.ReserveAsync(order))
@@ -264,6 +280,7 @@ string message = await ValidateOrder(request)
 
 Use `ToResultAsync` to continue from an optional lookup as a result pipeline:
 
+<!-- snippet: to-result-async -->
 ```csharp
 Result<Receipt> receipt = await repository.FindAsync(id)
     .ToResultAsync(new Error("Order not found."))
@@ -276,6 +293,7 @@ At the edges of a system — I/O, database calls, third-party SDKs — exception
 signal of failure. `Result.Try`/`Result.TryAsync` convert that signal into a `Result` without
 repeating the same try/catch shape at every call site:
 
+<!-- snippet: try -->
 ```csharp
 // Built-in Error, synchronous
 Result<Order> order = Result.Try(() => repository.GetOrder(orderId));
@@ -284,7 +302,7 @@ Result<Order> order = Result.Try(() => repository.GetOrder(orderId));
 Result<Customer> customer = await Result.TryAsync(() => repository.GetCustomerAsync());
 
 // Custom domain error, asynchronous
-Result<Customer, DomainError> customer = await Result.TryAsync(
+Result<Customer, DomainError> customerOrError = await Result.TryAsync(
     () => repository.GetCustomerAsync(),
     ex => DomainError.FromException(ex));
 ```
@@ -306,6 +324,7 @@ Rules that apply to every `Try`/`TryAsync` overload:
 Pass a `catchWhen` filter to turn only the expected exceptions into a failure. Any other exception
 propagates unchanged, as with a C# `when` filter, so a programming error is not hidden as a failure:
 
+<!-- snippet: catch-when -->
 ```csharp
 Result<string> body = await Result.TryAsync(
     token => client.GetStringAsync(url, token),
@@ -320,6 +339,7 @@ runs: the caller's cancellation propagates, and with a token, a timeout always b
 
 Keep a `finally` block around the call, or put a `using` declaration inside the operation:
 
+<!-- snippet: cleanup -->
 ```csharp
 try
 {
@@ -338,6 +358,7 @@ timeout, which surfaces as `TaskCanceledException`. Pass the caller's token to t
 cancellation-aware overload so only that cancellation propagates and every other cancellation
 becomes a `Failure`:
 
+<!-- snippet: cancel-token -->
 ```csharp
 Result<string> body = await Result.TryAsync(
     token => client.GetStringAsync(url, token),
@@ -351,6 +372,7 @@ When the caller's cancellation should be a failure too, chain `CatchCancellation
 to return. Only cancellation by the given token is caught; a timeout is already a failure, and any other
 exception still throws:
 
+<!-- snippet: catch-cancellation -->
 ```csharp
 Result<Page> page = await Result.TryAsync(token => LoadAsync(token), cancellationToken)
     .CatchCancellationAsync(Errors.Cancelled, cancellationToken);
@@ -368,6 +390,7 @@ It works on any `Task<Result>`, `Task<Result<T>>`, or `Task<Result<T, TError>>`,
 
 `Error.IsCancellation` reports whether a failure came from a cancellation, such as that timeout:
 
+<!-- snippet: is-cancellation -->
 ```csharp
 Result<string> classified = await Result.TryAsync(token => client.GetStringAsync(url, token), cancellationToken)
     .TapErrorAsync(error => logger.Log(error.IsCancellation ? "Timed out" : error.Message));
@@ -383,6 +406,7 @@ rule, severity, and remediation.
 mirror `Option<T>`'s existing helpers, letting you read the success payload (or a default/fallback)
 without an explicit `IsSuccess` check or `Match` call:
 
+<!-- snippet: get-value-or-default -->
 ```csharp
 int total = Result<int>.Success(42).GetValueOrDefault(); // 42
 int missing = Result<int>.Failure(new Error("bad")).GetValueOrDefault(); // 0
@@ -396,11 +420,12 @@ original value unchanged when it is a success/`Some`, or a fallback of the same 
 failure/`None`. Unlike `GetValueOrDefault`, which extracts a plain payload value, `OrElse` returns
 another `Result`/`Option`, so the fallback itself can be chained further:
 
+<!-- snippet: or-else -->
 ```csharp
 Result<Customer> customer = repository.FindLocal(id)
     .OrElse(() => repository.FindRemote(id));
 
-Option<Settings> settings = userSettings
+Option<Settings> settings = await userSettings
     .OrElse(defaultSettings)
     .OrElseAsync(() => settingsService.LoadFromDiskAsync());
 ```
@@ -416,6 +441,7 @@ four types.
 `Task<Result>`, `Task<Result<T>>`, `Task<Result<T, TError>>`, and `Task<Option<T>>`, so you can
 chain `.OrElseAsync(...)` directly off an unawaited task without an intermediate `await`:
 
+<!-- snippet: or-else-async -->
 ```csharp
 Result<Customer> customer = await repository.FindLocalAsync(id)
     .OrElseAsync(() => repository.FindRemoteAsync(id));

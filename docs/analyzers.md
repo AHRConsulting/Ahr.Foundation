@@ -32,6 +32,7 @@ All rules are enabled by default.
 `Result`, `Result<T>`, and `Result<T, TError>` have an uninitialized default state. `AHRF001`
 reports detectable default construction before that value can reach runtime:
 
+<!-- diagnostic -->
 ```csharp
 Result invalid = default;       // AHRF001
 Result valid = Result.Success();
@@ -40,6 +41,7 @@ Result valid = Result.Success();
 The supplied code fix can replace a default-constructed payload-free `Result` with
 `Result.Success()`. Generic results require choosing an intentional success value or failure:
 
+<!-- snippet: explicit-failure -->
 ```csharp
 Result<User> user = Result<User>.Failure(new Error("User was not loaded."));
 ```
@@ -47,6 +49,7 @@ Result<User> user = Result<User>.Failure(new Error("User was not loaded."));
 Arrays are reported separately. A Result array created without element initializers is a common
 allocate-then-fill pattern, so `AHRF005` reports it at Info severity rather than failing the build:
 
+<!-- diagnostic -->
 ```csharp
 var results = new Result<Order>[ids.Length]; // AHRF005: assign every element before use
 for (var i = 0; i < ids.Length; i++)
@@ -64,6 +67,7 @@ neither `AHRF001` nor `AHRF005` reports default option construction.
 throw `ArgumentNullException` when the mapping returns `null`. `AHRF006` reports a mapping whose result
 type is nullable, such as `string?` or `int?`, so the mistake appears at compile time instead:
 
+<!-- diagnostic -->
 ```csharp
 Option<string> middle = customer.Map(c => c.MiddleName);            // AHRF006
 Option<string> middle = customer.Bind(c => c.MiddleName.ToOption()); // null becomes None
@@ -82,6 +86,7 @@ at runtime continues to throw.
 `Result.Try` and `Result.TryAsync` follow the same rule: an operation declared to return a nullable
 type is reported, because a `null` success throws. Return an `Option` from the operation instead:
 
+<!-- diagnostic -->
 ```csharp
 Result<object> shown = await Result.TryAsync(presenter.ShowAsync, ct);                    // AHRF006 when ShowAsync returns Task<object?>
 Result<Option<object>> shown = await Result.TryAsync(
@@ -92,6 +97,7 @@ Result<Option<object>> shown = await Result.TryAsync(
 
 The remaining rules protect the boundary between exception-based APIs and result-based code:
 
+<!-- diagnostic -->
 ```csharp
 // AHRF002: this shape can be replaced with Result.Try.
 Result<Order> LoadOrder()
@@ -154,6 +160,7 @@ throws before the operation runs.
 parameter, a local, or a member such as `HttpContext.RequestAborted`. `CancellationToken.None`,
 `default`, and tokens created inside the operation are not reported.
 
+<!-- diagnostic -->
 ```csharp
 // AHRF007: the operation uses 'cancellationToken'
 Result<string> body = await Result.TryAsync(() => client.GetStringAsync(url, cancellationToken));
@@ -172,6 +179,7 @@ is not offered when the operation uses more than one distinct token.
 A `Tap` function that returns the same family stops the pipeline on failure or `None`. When the
 function discards the value instead, the failure goes unnoticed, so `AHRF008` reports it:
 
+<!-- diagnostic -->
 ```csharp
 Result<int> result = LoadTotal();
 
@@ -193,6 +201,7 @@ A `Result` is often the only signal that an operation failed. `AHRF010` reports 
 one, including an awaited call, a call that is not awaited, and a statement in a lambda with no return
 value:
 
+<!-- diagnostic -->
 ```csharp
 Save(order);                         // AHRF010
 await SaveAsync(order, ct);          // AHRF010: awaiting does not handle the failure
@@ -223,6 +232,7 @@ dotnet_diagnostic.AHRF010.severity = none
 
 `AHRF011` reports a check that returns the failure unchanged, which is what `Bind` and `BindAsync` do:
 
+<!-- diagnostic -->
 ```csharp
 return loaded.IsFailure ? Result<Page>.Failure(loaded.Error) : Build(loaded.Value);  // AHRF011
 return loaded.Bind(value => Build(value));                                           // after the code fix

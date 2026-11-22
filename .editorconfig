@@ -11,7 +11,6 @@ indent_style = space
 indent_size = 4
 tab_width = 4
 
-# C# conventions
 csharp_new_line_before_open_brace = all
 csharp_new_line_before_else = true
 csharp_new_line_before_catch = true
@@ -77,11 +76,9 @@ dotnet_code_quality_unused_parameters = all:warning
 
 dotnet_analyzer_diagnostic.category-Style.severity = warning
 
-# Prefer explicit block structure for control flow and concise expressions where readable.
 csharp_prefer_braces = true:warning
 dotnet_diagnostic.IDE0011.severity = warning
 
-# Naming conventions
 dotnet_naming_rule.types_and_namespaces_must_be_pascal_case.severity = warning
 dotnet_naming_rule.types_and_namespaces_must_be_pascal_case.symbols = types_and_namespaces
 dotnet_naming_rule.types_and_namespaces_must_be_pascal_case.style = pascal_case
@@ -114,7 +111,6 @@ dotnet_naming_rule.constants_must_be_pascal_case.severity = warning
 dotnet_naming_rule.constants_must_be_pascal_case.symbols = constants
 dotnet_naming_rule.constants_must_be_pascal_case.style = pascal_case
 
-# Symbol specifications
 dotnet_naming_symbols.types_and_namespaces.applicable_kinds = namespace, class, struct, interface, enum, delegate
 dotnet_naming_symbols.types_and_namespaces.applicable_accessibilities = *
 
@@ -141,7 +137,6 @@ dotnet_naming_symbols.constants.applicable_kinds = field
 dotnet_naming_symbols.constants.applicable_accessibilities = *
 dotnet_naming_symbols.constants.required_modifiers = const
 
-# Naming styles
 dotnet_naming_style.pascal_case.capitalization = pascal_case
 dotnet_naming_style.camel_case.capitalization = camel_case
 dotnet_naming_style.prefix_i.capitalization = pascal_case
@@ -153,9 +148,6 @@ dotnet_naming_style.underscore_camel_case.required_prefix = _
 
 dotnet_diagnostic.IDE0005.severity = warning
 dotnet_diagnostic.IDE0055.severity = warning
-# Ahr.Foundation's result-pattern analyzers ship at info. As warnings, with TreatWarningsAsErrors, these fail the build:
-# a hand-written try/catch building a Result, a flattened result of an option, and a failure passed on by hand.
-# A repo without the analyzers ignores them.
 dotnet_diagnostic.AHRF002.severity = warning
 dotnet_diagnostic.AHRF009.severity = warning
 dotnet_diagnostic.AHRF011.severity = warning

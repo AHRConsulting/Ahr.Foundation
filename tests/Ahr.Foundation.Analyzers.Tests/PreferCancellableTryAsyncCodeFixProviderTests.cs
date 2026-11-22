@@ -2,153 +2,190 @@ using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Ahr.Foundation.Analyzers.Tests;
 
 public sealed class PreferCancellableTryAsyncCodeFixProviderTests
 {
-    [Fact]
-    public async Task CodeFix_ExpressionLambda_PassesTokenToCancellableOverload()
-    {
-        var fixedSource = await ApplyFixAsync(
-            "Task M(Client client, CancellationToken ct) => Result.TryAsync(() => client.GetAsync(\"u\", ct));");
+    private static readonly BusinessContext _cancellableTryFix = BusinessContext
+        .Define("cancellable-try-async-fixes", "Cancellable TryAsync fixes", "Forward a caller's cancellation token to the cancellable TryAsync overload without changing operation behavior.")
+        .Capability("forward-caller-token", "Forward the caller token to TryAsync")
+        .Outcome("operation-references-rewritten", "Captured caller-token references use the new operation parameter")
+        .Outcome("ambiguous-token-fix-withheld", "A code fix is withheld when one token cannot safely represent the operation")
+        .Rule("preserve-call-semantics", "Preserve error factories and choose a non-conflicting operation parameter")
+        .Build();
 
-        Assert.Contains("Result.TryAsync(token => client.GetAsync(\"u\", token), ct)", fixedSource, StringComparison.Ordinal);
-    }
+    private const string FixTitle = "Pass the cancellation token to TryAsync";
 
     [Fact]
-    public async Task CodeFix_AsyncBlockLambda_ReplacesEveryReference()
-    {
-        var fixedSource = await ApplyFixAsync("""
-            Task M(Client client, CancellationToken ct) => Result.TryAsync(async () =>
+    public Task CodeFix_ExpressionLambda_PassesTokenToCancellableOverload() =>
+        Scenario.Define("The expression-lambda fix forwards its captured token", _cancellableTryFix)
+            .When("The code fix updates a TryAsync expression lambda", _ =>
+                ApplyFixAsync("Task M(Client client, CancellationToken ct) => Result.TryAsync(() => client.GetAsync(\"u\", ct));"))
+            .Then("AHRF007 is reported for the TryAsync call", (CodeFixOutcome outcome) =>
+                AnalyzerTestHarness.ReportsSingle(outcome.Diagnostics, PreferCancellableTryAsyncAnalyzer.DiagnosticId))
+            .And("A single 'Pass the cancellation token to TryAsync' fix is offered", (CodeFixOutcome outcome) =>
+                Assert.Equal([FixTitle], outcome.ActionTitles))
+            .And("The fix is a single change to the solution", (CodeFixOutcome outcome) =>
+                Assert.Equal([nameof(ApplyChangesOperation)], outcome.Operations))
+            .And("The operation and outer call receive the expected tokens", (CodeFixOutcome outcome) =>
+                Assert.Contains("Result.TryAsync(token => client.GetAsync(\"u\", token), ct)", outcome.FixedSource, StringComparison.Ordinal))
+            .And("No AHRF007 diagnostic remains after the fix", (CodeFixOutcome outcome) =>
+                Assert.Empty(outcome.DiagnosticsAfterFix))
+            .VerifyAsync();
+
+    [Fact]
+    public Task CodeFix_AsyncBlockLambda_ReplacesEveryReference() =>
+        Scenario.Define("The async block fix replaces every captured token reference", _cancellableTryFix)
+            .When("The code fix updates an async block that uses the captured token twice", _ =>
+                ApplyFixAsync("""
+                    Task M(Client client, CancellationToken ct) => Result.TryAsync(async () =>
+                    {
+                        await client.SaveAsync(ct);
+                        return await client.GetAsync("u", ct);
+                    });
+                    """))
+            .Then("AHRF007 is reported for the TryAsync call", (CodeFixOutcome outcome) =>
+                AnalyzerTestHarness.ReportsSingle(outcome.Diagnostics, PreferCancellableTryAsyncAnalyzer.DiagnosticId))
+            .And("A single 'Pass the cancellation token to TryAsync' fix is offered", (CodeFixOutcome outcome) =>
+                Assert.Equal([FixTitle], outcome.ActionTitles))
+            .And("The fix is a single change to the solution", (CodeFixOutcome outcome) =>
+                Assert.Equal([nameof(ApplyChangesOperation)], outcome.Operations))
+            .And("Both operation calls use the new token and the call keeps the caller token", (CodeFixOutcome outcome) =>
             {
-                await client.SaveAsync(ct);
-                return await client.GetAsync("u", ct);
-            });
-            """);
-
-        Assert.Contains("Result.TryAsync(async token =>", fixedSource, StringComparison.Ordinal);
-        Assert.Contains("await client.SaveAsync(token);", fixedSource, StringComparison.Ordinal);
-        Assert.Contains("await client.GetAsync(\"u\", token);", fixedSource, StringComparison.Ordinal);
-        Assert.Contains("}, ct);", fixedSource, StringComparison.Ordinal);
-    }
+                Assert.Contains("Result.TryAsync(async token =>", outcome.FixedSource, StringComparison.Ordinal);
+                Assert.Contains("await client.SaveAsync(token);", outcome.FixedSource, StringComparison.Ordinal);
+                Assert.Contains("await client.GetAsync(\"u\", token);", outcome.FixedSource, StringComparison.Ordinal);
+                Assert.Contains("}, ct);", outcome.FixedSource, StringComparison.Ordinal);
+            })
+            .And("No AHRF007 diagnostic remains after the fix", (CodeFixOutcome outcome) =>
+                Assert.Empty(outcome.DiagnosticsAfterFix))
+            .VerifyAsync();
 
     [Fact]
-    public async Task CodeFix_ErrorFactoryOverload_KeepsFactoryAndAppendsToken()
-    {
-        var fixedSource = await ApplyFixAsync(
-            "Task M(Client client, Context context) => Result.TryAsync(() => client.GetAsync(\"u\", context.RequestAborted), ex => ex.Message);");
-
-        Assert.Contains("Result.TryAsync(token => client.GetAsync(\"u\", token), ex => ex.Message, context.RequestAborted)", fixedSource, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task CodeFix_NameInScope_ChoosesFreeParameterName()
-    {
-        var fixedSource = await ApplyFixAsync(
-            "Task M(Client client, CancellationToken token) => Result.TryAsync(() => client.GetAsync(\"u\", token));");
-
-        Assert.Contains("Result.TryAsync(cancellationToken => client.GetAsync(\"u\", cancellationToken), token)", fixedSource, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task CodeFix_TwoDistinctTokens_OffersNoFix()
-    {
-        (Document document, Diagnostic diagnostic) = await GetDiagnosticAsync(
-            "Task M(Client client, CancellationToken a, CancellationToken b) => Result.TryAsync(async () => { await client.SaveAsync(a); return await client.GetAsync(\"u\", b); });");
-
-        List<CodeAction> actions = await RegisterAsync(document, diagnostic);
-        Assert.Empty(actions);
-    }
+    public Task CodeFix_ErrorFactoryOverload_KeepsFactoryAndAppendsToken() =>
+        Scenario.Define("The error-factory fix preserves the factory and appends the caller token", _cancellableTryFix)
+            .When("The code fix updates a custom-error TryAsync call", _ =>
+                ApplyFixAsync("Task M(Client client, Context context) => Result.TryAsync(() => client.GetAsync(\"u\", context.RequestAborted), ex => ex.Message);"))
+            .Then("AHRF007 is reported for the TryAsync call", (CodeFixOutcome outcome) =>
+                AnalyzerTestHarness.ReportsSingle(outcome.Diagnostics, PreferCancellableTryAsyncAnalyzer.DiagnosticId))
+            .And("A single 'Pass the cancellation token to TryAsync' fix is offered", (CodeFixOutcome outcome) =>
+                Assert.Equal([FixTitle], outcome.ActionTitles))
+            .And("The fix is a single change to the solution", (CodeFixOutcome outcome) =>
+                Assert.Equal([nameof(ApplyChangesOperation)], outcome.Operations))
+            .And("The factory remains in place and the caller token is forwarded", (CodeFixOutcome outcome) =>
+                Assert.Contains("Result.TryAsync(token => client.GetAsync(\"u\", token), ex => ex.Message, context.RequestAborted)", outcome.FixedSource, StringComparison.Ordinal))
+            .And("No AHRF007 diagnostic remains after the fix", (CodeFixOutcome outcome) =>
+                Assert.Empty(outcome.DiagnosticsAfterFix))
+            .VerifyAsync();
 
     [Fact]
-    public async Task CodeFix_FixAll_FixesEveryCallInDocument()
-    {
-        (Document document, _) = await GetDiagnosticAsync("""
-            void M(Client client, CancellationToken ct)
+    public Task CodeFix_NameInScope_ChoosesFreeParameterName() =>
+        Scenario.Define("The code fix chooses a non-conflicting operation parameter", _cancellableTryFix)
+            .When("The code fix updates a call where token is already in scope", _ =>
+                ApplyFixAsync("Task M(Client client, CancellationToken token) => Result.TryAsync(() => client.GetAsync(\"u\", token));"))
+            .Then("AHRF007 is reported for the TryAsync call", (CodeFixOutcome outcome) =>
+                AnalyzerTestHarness.ReportsSingle(outcome.Diagnostics, PreferCancellableTryAsyncAnalyzer.DiagnosticId))
+            .And("A single 'Pass the cancellation token to TryAsync' fix is offered", (CodeFixOutcome outcome) =>
+                Assert.Equal([FixTitle], outcome.ActionTitles))
+            .And("The fix is a single change to the solution", (CodeFixOutcome outcome) =>
+                Assert.Equal([nameof(ApplyChangesOperation)], outcome.Operations))
+            .And("The operation parameter uses an available name and the caller token is preserved", (CodeFixOutcome outcome) =>
+                Assert.Contains("Result.TryAsync(cancellationToken => client.GetAsync(\"u\", cancellationToken), token)", outcome.FixedSource, StringComparison.Ordinal))
+            .And("No AHRF007 diagnostic remains after the fix", (CodeFixOutcome outcome) =>
+                Assert.Empty(outcome.DiagnosticsAfterFix))
+            .VerifyAsync();
+
+    [Fact]
+    public Task CodeFix_TwoDistinctTokens_OffersNoFix() =>
+        Scenario.Define("The code fix is withheld when the operation uses two distinct tokens", _cancellableTryFix)
+            .When("The provider is queried for a call that captures two cancellation tokens", _ =>
+                ApplyFixAsync("Task M(Client client, CancellationToken a, CancellationToken b) => Result.TryAsync(async () => { await client.SaveAsync(a); return await client.GetAsync(\"u\", b); });"))
+            .Then("AHRF007 is reported for the TryAsync call", (CodeFixOutcome outcome) =>
+                AnalyzerTestHarness.ReportsSingle(outcome.Diagnostics, PreferCancellableTryAsyncAnalyzer.DiagnosticId))
+            .And("No unsafe code fix is offered", (CodeFixOutcome outcome) =>
+                Assert.Empty(outcome.ActionTitles))
+            .VerifyAsync();
+
+    [Fact]
+    public Task CodeFix_FixAll_FixesEveryCallInDocument() =>
+        Scenario.Define("Fix All forwards cancellation tokens for every call in the document", _cancellableTryFix)
+            .When("The fix-all provider updates two calls that capture the same token", _ =>
+                FixAllAsync("""
+                    void M(Client client, CancellationToken ct)
+                    {
+                        _ = Result.TryAsync(() => client.GetAsync("a", ct));
+                        _ = Result.TryAsync(() => client.SaveAsync(ct));
+                    }
+                    """))
+            .Then("AHRF007 is reported for both calls before the fix", (FixAllOutcome outcome) =>
+                Assert.Equal(
+                    [PreferCancellableTryAsyncAnalyzer.DiagnosticId, PreferCancellableTryAsyncAnalyzer.DiagnosticId],
+                    outcome.Diagnostics.Select(diagnostic => diagnostic.Id)))
+            .And("The fix-all result is a single change to the solution", (FixAllOutcome outcome) =>
+                Assert.Equal([nameof(ApplyChangesOperation)], outcome.Operations))
+            .And("Both calls use the operation token and retain the caller token", (FixAllOutcome outcome) =>
             {
-                _ = Result.TryAsync(() => client.GetAsync("a", ct));
-                _ = Result.TryAsync(() => client.SaveAsync(ct));
-            }
-            """);
+                Assert.Contains("Result.TryAsync(token => client.GetAsync(\"a\", token), ct)", outcome.FixedSource, StringComparison.Ordinal);
+                Assert.Contains("Result.TryAsync(token => client.SaveAsync(token), ct)", outcome.FixedSource, StringComparison.Ordinal);
+            })
+            .VerifyAsync();
 
+    private sealed record FixAllOutcome(
+        ImmutableArray<Diagnostic> Diagnostics,
+        IReadOnlyList<string> Operations,
+        string? FixedSource);
+
+    private static Task<CodeFixOutcome> ApplyFixAsync(string member) =>
+        AnalyzerTestHarness.RunCodeFixAsync(
+            CreateProject(member),
+            new PreferCancellableTryAsyncAnalyzer(),
+            new PreferCancellableTryAsyncCodeFixProvider(),
+            TestContext.Current.CancellationToken);
+
+    private static async Task<FixAllOutcome> FixAllAsync(string member)
+    {
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        Project project = CreateProject(member);
+        Document document = AnalyzerTestHarness.GetTestDocument(project);
+        ImmutableArray<Diagnostic> diagnostics = await AnalyzerTestHarness.AnalyzeProjectAsync(
+            project, new PreferCancellableTryAsyncAnalyzer(), cancellationToken);
         PreferCancellableTryAsyncCodeFixProvider provider = new();
         FixAllContext fixAllContext = new(
             document,
             provider,
             FixAllScope.Document,
-            "Pass the cancellation token to TryAsync",
+            FixTitle,
             [PreferCancellableTryAsyncAnalyzer.DiagnosticId],
             new DocumentDiagnosticProvider(),
-            TestContext.Current.CancellationToken);
-
+            cancellationToken);
         CodeAction? action = await provider.GetFixAllProvider().GetFixAsync(fixAllContext);
-        Assert.NotNull(action);
-        var fixedSource = await ApplyAsync(document, action);
+        if (action is null)
+        {
+            return new(diagnostics, [], null);
+        }
 
-        Assert.Contains("Result.TryAsync(token => client.GetAsync(\"a\", token), ct)", fixedSource, StringComparison.Ordinal);
-        Assert.Contains("Result.TryAsync(token => client.SaveAsync(token), ct)", fixedSource, StringComparison.Ordinal);
+        ImmutableArray<CodeActionOperation> operations = await action.GetOperationsAsync(cancellationToken);
+        return new(
+            diagnostics,
+            AnalyzerTestHarness.GetOperationNames(operations),
+            await AnalyzerTestHarness.ApplyAsync(document, operations, cancellationToken));
     }
 
-    private static async Task<string> ApplyFixAsync(string member)
-    {
-        (Document document, Diagnostic diagnostic) = await GetDiagnosticAsync(member);
-        CodeAction action = Assert.Single(await RegisterAsync(document, diagnostic));
-        Assert.Equal("Pass the cancellation token to TryAsync", action.Title);
-        var fixedSource = await ApplyAsync(document, action);
-
-        Compilation compilation = (await document.Project.Solution
-            .WithDocumentText(document.Id, Microsoft.CodeAnalysis.Text.SourceText.From(fixedSource))
-            .GetProject(document.Project.Id)!
-            .GetCompilationAsync(TestContext.Current.CancellationToken))!;
-        Assert.Empty(compilation.GetDiagnostics(TestContext.Current.CancellationToken).Where(d => d.Severity == DiagnosticSeverity.Error));
-        Assert.Empty(await compilation.WithAnalyzers([new PreferCancellableTryAsyncAnalyzer()]).GetAnalyzerDiagnosticsAsync(TestContext.Current.CancellationToken));
-        return fixedSource;
-    }
-
-    private static async Task<(Document Document, Diagnostic Diagnostic)> GetDiagnosticAsync(string member)
-    {
-        AdhocWorkspace workspace = new();
-        Project project = AnalyzerTestHarness.CreateProject(
-            workspace,
+    private static Project CreateProject(string member) =>
+        AnalyzerTestHarness.CreateProject(
+            new AdhocWorkspace(),
             PreferCancellableTryAsyncAnalyzerTests.ResultDefinitions,
             PreferCancellableTryAsyncAnalyzerTests.Wrap(member));
-        Document document = project.Documents.Single(d => d.Name == "TestClass.cs");
-
-        Compilation compilation = (await project.GetCompilationAsync(TestContext.Current.CancellationToken))!;
-        ImmutableArray<Diagnostic> diagnostics = await compilation
-            .WithAnalyzers([new PreferCancellableTryAsyncAnalyzer()])
-            .GetAnalyzerDiagnosticsAsync(TestContext.Current.CancellationToken);
-        return (document, diagnostics.First());
-    }
-
-    private static async Task<List<CodeAction>> RegisterAsync(Document document, Diagnostic diagnostic)
-    {
-        List<CodeAction> actions = [];
-        CodeFixContext context = new(document, diagnostic, (action, _) => actions.Add(action), TestContext.Current.CancellationToken);
-        await new PreferCancellableTryAsyncCodeFixProvider().RegisterCodeFixesAsync(context);
-        return actions;
-    }
-
-    private static async Task<string> ApplyAsync(Document document, CodeAction action)
-    {
-        ImmutableArray<CodeActionOperation> operations = await action.GetOperationsAsync(TestContext.Current.CancellationToken);
-        ApplyChangesOperation apply = Assert.IsType<ApplyChangesOperation>(Assert.Single(operations));
-        Document changed = apply.ChangedSolution.GetDocument(document.Id)!;
-        return (await changed.GetTextAsync(TestContext.Current.CancellationToken)).ToString();
-    }
 
     private sealed class DocumentDiagnosticProvider : FixAllContext.DiagnosticProvider
     {
         public override async Task<IEnumerable<Diagnostic>> GetDocumentDiagnosticsAsync(Document document, CancellationToken cancellationToken)
         {
-            Compilation compilation = (await document.Project.GetCompilationAsync(cancellationToken))!;
-            ImmutableArray<Diagnostic> diagnostics = await compilation
-                .WithAnalyzers([new PreferCancellableTryAsyncAnalyzer()])
-                .GetAnalyzerDiagnosticsAsync(cancellationToken);
+            ImmutableArray<Diagnostic> diagnostics = await AnalyzerTestHarness.AnalyzeProjectAsync(
+                document.Project, new PreferCancellableTryAsyncAnalyzer(), cancellationToken);
             SyntaxTree tree = (await document.GetSyntaxTreeAsync(cancellationToken))!;
-            return diagnostics.Where(d => d.Location.SourceTree == tree);
+            return diagnostics.Where(diagnostic => diagnostic.Location.SourceTree == tree);
         }
 
         public override Task<IEnumerable<Diagnostic>> GetProjectDiagnosticsAsync(Project project, CancellationToken cancellationToken) =>
